@@ -224,9 +224,10 @@ function Stat({title,value,subtitle,color}) {
 
 
 // ─── Main App ────────────────────────────────────────────────────────────────
-export default function App() {
   const [settings,setSettings]   = useState(defaultSettings);
-  const [entries,setEntries]     = useState(()=>buildSeedEntries(2026));
+  const [entries,setEntries]     = useState([]);
+  const [loading,setLoading]     = useState(true);
+  const [saving,setSaving]       = useState(false);
   const [liveClock,setLiveClock] = useState(null);
   const [pauseClock,setPauseClock] = useState(null);
   const [newEntry,setNewEntry]   = useState({date:TODAY,type:"work",start:"08:00",end:"12:00",start2:"12:30",end2:"16:00",note:""});
@@ -234,6 +235,35 @@ export default function App() {
   const [isEditing,setIsEditing] = useState(false);
   const [listFilter,setListFilter] = useState({work:true,sick:true,comp:false,vacation:false,holiday:false,free:false});
   const [listLimit,setListLimit] = useState(50);
+  const seedLoaded = useRef(false);
+
+  // ── Supabase: laden ───────────────────────────────────────────────────────
+  useEffect(()=>{
+    async function loadAll() {
+      setLoading(true);
+      const { data: sData } = await supabase.from("settings").select("*").eq("id",1).single();
+      if(sData) setSettings({ year:sData.year, annualVacationDays:sData.annual_vacation_days, vacationHoursPerDay:sData.vacation_hours_per_day, vacationCarryover:sData.vacation_carryover, autoBreakThresholdH:sData.auto_break_threshold_h, autoBreakMinutes:sData.auto_break_minutes, scheduledWeekdays:sData.scheduled_weekdays });
+      const { data: eData } = await supabase.from("entries").select("*").order("date");
+      if(eData && eData.length > 0) {
+        setEntries(eData.map(r=>({ date:r.date, type:r.type, start:r.start, end:r.end, start2:r.start2, end2:r.end2, actualHours:r.actual_hours, manualBreakMin:r.manual_break_min, note:r.note })));
+      } else if(!seedLoaded.current) {
+        seedLoaded.current = true;
+        const seed = buildSeedEntries(2026);
+        setEntries(seed);
+        await supabase.from("entries").upsert(seed.map(e=>({ date:e.date, type:e.type, start:e.start||null, end:e.end||null, start2:e.start2||null, end2:e.end2||null, actual_hours:e.actualHours||0, manual_break_min:e.manualBreakMin||null, note:e.note||null })));
+      }
+      setLoading(false);
+    }
+    loadAll();
+  },[]);
+
+  const saveSettings = useCallback(async (s) => {
+    await supabase.from("settings").upsert({ id:1, year:s.year, annual_vacation_days:s.annualVacationDays, vacation_hours_per_day:s.vacationHoursPerDay, vacation_carryover:s.vacationCarryover, auto_break_threshold_h:s.autoBreakThresholdH, auto_break_minutes:s.autoBreakMinutes, scheduled_weekdays:s.scheduledWeekdays });
+  },[]);
+
+  const handleSetSettings = useCallback((updater) => {
+    setSettings(prev => { const next = typeof updater === "function" ? updater(prev) : updater; saveSettings(next); return next; });
+  },[saveSettings]);
 
   const summary       = useMemo(()=>buildDaySummary(settings,entries),[settings,entries]);
   const byDate        = useMemo(()=>new Map(entries.map(e=>[e.date,e])),[entries]);
