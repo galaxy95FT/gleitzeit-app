@@ -224,6 +224,7 @@ function Stat({title,value,subtitle,color}) {
 
 
 // ─── Main App ────────────────────────────────────────────────────────────────
+export default function App() {
   const [settings,setSettings]   = useState(defaultSettings);
   const [entries,setEntries]     = useState([]);
   const [loading,setLoading]     = useState(true);
@@ -360,6 +361,7 @@ function Stat({title,value,subtitle,color}) {
     {id:"regeln",label:"⚙️ Regeln"},
   ];
 
+  if(loading) return (<div className="min-h-screen bg-slate-50 flex items-center justify-center"><div className="text-center space-y-3"><div className="text-4xl">⏱</div><p className="text-slate-600 font-medium">Daten werden geladen...</p></div></div>);
   return (
     <div className="min-h-screen bg-slate-50 p-4">
       <div className="mx-auto max-w-5xl space-y-4">
