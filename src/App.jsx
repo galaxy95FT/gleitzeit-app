@@ -223,8 +223,148 @@ function Stat({title,value,subtitle,color}) {
 }
 
 
+
+// ─── Auth Pages ───────────────────────────────────────────────────────────────
+function AuthPage({ onLogin }) {
+  const [mode, setMode] = useState("login"); // login | register | forgot
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleLogin = async () => {
+    setError(""); setLoading(true);
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) setError(error.message);
+    setLoading(false);
+  };
+
+  const handleRegister = async () => {
+    setError(""); setLoading(true);
+    const { error } = await supabase.auth.signUp({ email, password });
+    if (error) setError(error.message);
+    else setMessage("Bestätigungsmail gesendet! Bitte E-Mail prüfen.");
+    setLoading(false);
+  };
+
+  const handleForgot = async () => {
+    setError(""); setLoading(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: "https://galaxy95ft-gleitzeit.netlify.app",
+    });
+    if (error) setError(error.message);
+    else setMessage("Passwort-Reset E-Mail gesendet!");
+    setLoading(false);
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-3xl shadow-sm border border-slate-100 w-full max-w-md p-8 space-y-6">
+        <div className="text-center space-y-1">
+          <p className="text-xs uppercase tracking-widest text-slate-400">Gleitzeit 2026</p>
+          <h1 className="text-2xl font-bold text-slate-800">Zeiterfassung</h1>
+          <p className="text-sm text-slate-500">
+            {mode === "login" ? "Anmelden" : mode === "register" ? "Registrieren" : "Passwort vergessen"}
+          </p>
+        </div>
+
+        {message && (
+          <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-sm text-emerald-700">{message}</div>
+        )}
+        {error && (
+          <div className="bg-rose-50 border border-rose-200 rounded-xl p-3 text-sm text-rose-700">{error}</div>
+        )}
+
+        <div className="space-y-3">
+          <div>
+            <label className="text-xs text-slate-500 mb-1 block">E-Mail</label>
+            <input type="email" value={email} onChange={e => setEmail(e.target.value)}
+              placeholder="deine@email.com"
+              className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300"/>
+          </div>
+          {mode !== "forgot" && (
+            <div>
+              <label className="text-xs text-slate-500 mb-1 block">Passwort</label>
+              <input type="password" value={password} onChange={e => setPassword(e.target.value)}
+                placeholder="••••••••"
+                onKeyDown={e => e.key === "Enter" && mode === "login" && handleLogin()}
+                className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300"/>
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-3">
+          {mode === "login" && (
+            <button onClick={handleLogin} disabled={loading}
+              className="w-full py-3 bg-slate-800 text-white rounded-xl text-sm font-medium hover:bg-slate-700 disabled:opacity-50 transition-colors">
+              {loading ? "Anmelden..." : "Anmelden"}
+            </button>
+          )}
+          {mode === "register" && (
+            <button onClick={handleRegister} disabled={loading}
+              className="w-full py-3 bg-slate-800 text-white rounded-xl text-sm font-medium hover:bg-slate-700 disabled:opacity-50 transition-colors">
+              {loading ? "Registrieren..." : "Konto erstellen"}
+            </button>
+          )}
+          {mode === "forgot" && (
+            <button onClick={handleForgot} disabled={loading}
+              className="w-full py-3 bg-slate-800 text-white rounded-xl text-sm font-medium hover:bg-slate-700 disabled:opacity-50 transition-colors">
+              {loading ? "Senden..." : "Reset-Link senden"}
+            </button>
+          )}
+        </div>
+
+        <div className="border-t border-slate-100 pt-4 space-y-2 text-center text-xs text-slate-500">
+          {mode === "login" && (
+            <>
+              <div><button onClick={() => { setMode("forgot"); setError(""); setMessage(""); }} className="text-slate-600 hover:underline">Passwort vergessen?</button></div>
+              <div>Noch kein Konto? <button onClick={() => { setMode("register"); setError(""); setMessage(""); }} className="text-slate-800 font-medium hover:underline">Registrieren</button></div>
+            </>
+          )}
+          {mode === "register" && (
+            <div>Bereits registriert? <button onClick={() => { setMode("login"); setError(""); setMessage(""); }} className="text-slate-800 font-medium hover:underline">Anmelden</button></div>
+          )}
+          {mode === "forgot" && (
+            <div><button onClick={() => { setMode("login"); setError(""); setMessage(""); }} className="text-slate-800 font-medium hover:underline">← Zurück zum Login</button></div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Root Component ───────────────────────────────────────────────────────────
+function Root() {
+  const [user, setUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      setAuthLoading(false);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  if (authLoading) return (
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <div className="text-center space-y-3">
+        <div className="text-4xl">⏱</div>
+        <p className="text-slate-600 font-medium">Laden...</p>
+      </div>
+    </div>
+  );
+
+  if (!user) return <AuthPage />;
+  return <App user={user} />;
+}
+
 // ─── Main App ────────────────────────────────────────────────────────────────
-export default function App() {
+function App({ user }) {
   const [settings,setSettings]   = useState(defaultSettings);
   const [entries,setEntries]     = useState([]);
   const [loading,setLoading]     = useState(true);
@@ -242,16 +382,16 @@ export default function App() {
   useEffect(()=>{
     async function loadAll() {
       setLoading(true);
-      const { data: sData } = await supabase.from("settings").select("*").eq("id",1).single();
+      const { data: sData } = await supabase.from("settings").select("*").eq("user_id",user.id).single();
       if(sData) setSettings({ year:sData.year, annualVacationDays:sData.annual_vacation_days, vacationHoursPerDay:sData.vacation_hours_per_day, vacationCarryover:sData.vacation_carryover, autoBreakThresholdH:sData.auto_break_threshold_h, autoBreakMinutes:sData.auto_break_minutes, scheduledWeekdays:sData.scheduled_weekdays });
-      const { data: eData } = await supabase.from("entries").select("*").order("date");
+      const { data: eData } = await supabase.from("entries").select("*").eq("user_id",user.id).order("date");
       if(eData && eData.length > 0) {
         setEntries(eData.map(r=>({ date:r.date, type:r.type, start:r.start, end:r.end, start2:r.start2, end2:r.end2, actualHours:r.actual_hours, manualBreakMin:r.manual_break_min, note:r.note })));
       } else if(!seedLoaded.current) {
         seedLoaded.current = true;
         const seed = buildSeedEntries(2026);
         setEntries(seed);
-        await supabase.from("entries").upsert(seed.map(e=>({ date:e.date, type:e.type, start:e.start||null, end:e.end||null, start2:e.start2||null, end2:e.end2||null, actual_hours:e.actualHours||0, manual_break_min:e.manualBreakMin||null, note:e.note||null })));
+        await supabase.from("entries").upsert(seed.map(e=>({ date:e.date, type:e.type, start:e.start||null, end:e.end||null, start2:e.start2||null, end2:e.end2||null, actual_hours:e.actualHours||0, manual_break_min:e.manualBreakMin||null, note:e.note||null, user_id:user.id })));
       }
       setLoading(false);
     }
@@ -259,7 +399,7 @@ export default function App() {
   },[]);
 
   const saveSettings = useCallback(async (s) => {
-    await supabase.from("settings").upsert({ id:1, year:s.year, annual_vacation_days:s.annualVacationDays, vacation_hours_per_day:s.vacationHoursPerDay, vacation_carryover:s.vacationCarryover, auto_break_threshold_h:s.autoBreakThresholdH, auto_break_minutes:s.autoBreakMinutes, scheduled_weekdays:s.scheduledWeekdays });
+    await supabase.from("settings").upsert({ user_id:user.id, year:s.year, annual_vacation_days:s.annualVacationDays, vacation_hours_per_day:s.vacationHoursPerDay, vacation_carryover:s.vacationCarryover, auto_break_threshold_h:s.autoBreakThresholdH, auto_break_minutes:s.autoBreakMinutes, scheduled_weekdays:s.scheduledWeekdays });
   },[]);
 
   const handleSetSettings = useCallback((updater) => {
@@ -376,6 +516,7 @@ export default function App() {
             <button onClick={handleClockIn} className="px-4 py-2 bg-slate-800 text-white rounded-xl text-sm font-medium hover:bg-slate-700 transition-colors">⏱ Kommt</button>
             <button onClick={handleClockOut} className="px-4 py-2 bg-slate-200 text-slate-700 rounded-xl text-sm font-medium hover:bg-slate-300 transition-colors">🏁 Geht</button>
             <button onClick={resetDemo} className="px-4 py-2 border border-slate-200 text-slate-500 rounded-xl text-sm hover:bg-slate-50 transition-colors">Reset</button>
+            <button onClick={()=>supabase.auth.signOut()} className="px-4 py-2 border border-rose-200 text-rose-500 rounded-xl text-sm hover:bg-rose-50 transition-colors">Abmelden</button>
             {saving&&<span className="text-xs text-slate-400 animate-pulse">Speichert...</span>}
           </div>
         </div>
@@ -789,3 +930,5 @@ export default function App() {
     </div>
   );
 }
+
+export default Root;
