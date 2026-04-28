@@ -309,8 +309,7 @@ function AuthPage({ onLogin }) {
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-3xl shadow-sm border border-slate-100 w-full max-w-md p-8 space-y-6">
         <div className="text-center space-y-3">
-          <div className="flex justify-center"><Logo size={80}/></div>
-          <p className="text-xs uppercase tracking-widest text-slate-400">Gleitzeit 2026</p>
+          <div className="flex justify-center"><Logo size={120}/></div>
           <h1 className="text-2xl font-bold text-slate-800">Zeiterfassung</h1>
           <p className="text-sm text-slate-500">
             {mode === "login" ? "Anmelden" : mode === "register" ? "Registrieren" : "Passwort vergessen"}
@@ -670,11 +669,8 @@ function App({ user }) {
         {/* Header */}
         <div className="bg-white rounded-3xl p-7 shadow-sm flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-4">
-            <Logo size={56}/>
-            <div>
-              <p className="text-xs uppercase tracking-widest text-slate-400">Gleitzeit 2026</p>
-              <h1 className="mt-0.5 text-2xl font-bold text-slate-800">Zeiterfassung</h1>
-            </div>
+            <Logo size={80}/>
+            <h1 className="text-2xl font-bold text-slate-800">Zeiterfassung</h1>
           </div>
           <div className="flex flex-wrap gap-2">
             <button onClick={handleClockIn} className="px-4 py-2 bg-slate-800 text-white rounded-xl text-sm font-medium hover:bg-slate-700 transition-colors">⏱ Kommt</button>
