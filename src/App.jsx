@@ -997,8 +997,9 @@ function App({ user }) {
                     </thead>
                     <tbody>
                       {recent.filter(e=>listFilter[e.type]).map(entry=>{
-                        const sched=scheduledHours(entry.date,settings);
-                        const cred=creditedHours(entry,settings);
+                        const daySum=summaryByDate.get(entry.date);
+                        const sched=daySum?daySum.scheduled:scheduledHours(entry.date,settings);
+                        const cred=daySum?daySum.credited:creditedHours(entry,settings);
                         const delta=cred-sched;
                         return (
                           <tr key={entry.date} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
