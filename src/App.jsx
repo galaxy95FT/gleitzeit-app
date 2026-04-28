@@ -421,7 +421,7 @@ function Root() {
 
 
 // ─── Month Accordion ─────────────────────────────────────────────────────────
-function MonthAccordion({ month, days, holidayLookup, settings, onEdit }) {
+function MonthAccordion({ month, days, holidayLookup, settings, onEdit, isCurrentMonth }) {
   const [open, setOpen] = useState(false);
 
   // Running saldo
@@ -442,7 +442,12 @@ function MonthAccordion({ month, days, holidayLookup, settings, onEdit }) {
             <div className={`h-full rounded-full ${month.credited>=month.scheduled?"bg-emerald-400":"bg-blue-400"}`}
               style={{width:`${Math.min(100,month.scheduled>0?(month.credited/month.scheduled)*100:0)}%`}}/>
           </div>
-          <span className="text-xs text-slate-400">Soll {fh(month.scheduled)} · Ist {fh(month.credited)}</span>
+          <div className="flex flex-col gap-0.5">
+            <span className="text-xs text-slate-400">Soll {fh(month.scheduled)} · Ist {fh(month.credited)}</span>
+            {isCurrentMonth&&month.fullScheduled>month.scheduled&&(
+              <span className="text-xs text-violet-500">Monats-Soll gesamt: {fh(month.fullScheduled)} · noch offen: {fh(month.fullScheduled-month.scheduled)}</span>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-3">
           <span className={`text-lg font-bold ${month.delta>=0?"text-emerald-600":"text-rose-600"}`}>{fs(month.delta)}</span>
@@ -513,7 +518,11 @@ function MonthAccordion({ month, days, holidayLookup, settings, onEdit }) {
                 <td className="px-3 py-3 text-xs text-right font-bold text-slate-700">{fh(month.credited)}</td>
                 <td className="px-3 py-3 text-xs text-right font-bold text-slate-500">{fh(month.scheduled)}</td>
                 <td className={`px-3 py-3 text-sm text-right font-black ${month.delta>=0?"text-emerald-700":"text-rose-700"}`}>{fs(month.delta)}</td>
-                <td colSpan="2" className="px-6 py-3 text-xs text-right text-slate-400">Monatssaldo</td>
+                <td colSpan="2" className="px-6 py-3 text-xs text-right text-slate-400">
+                  {isCurrentMonth&&month.fullScheduled>month.scheduled?(
+                    <span className="text-violet-500">Monats-Soll: {fh(month.fullScheduled)}</span>
+                  ):"Monatssaldo"}
+                </td>
               </tr>
             </tfoot>
           </table>
@@ -586,13 +595,16 @@ function App({ user }) {
       vacationRemaining:Math.max(0,(settings.annualVacationDays+(settings.vacationCarryover||0))-vacationTaken)};
   },[summary,entries,settings]);
 
+  const currentMonth = parseIso(TODAY).getMonth()+1;
   const monthlyOverview = useMemo(()=>Array.from({length:12},(_,i)=>{
     const month=i+1;
     const days=summary.filter(d=>parseIso(d.date).getMonth()+1===month&&d.date<=TODAY);
+    const allDays=summary.filter(d=>parseIso(d.date).getMonth()+1===month);
     const scheduled=days.reduce((s,d)=>s+d.scheduled,0);
     const credited=days.reduce((s,d)=>s+d.credited,0);
+    const fullScheduled=allDays.reduce((s,d)=>s+d.scheduled,0);
     return {month,label:new Date(settings.year,i,1).toLocaleDateString("de-AT",{month:"long"}),
-      scheduled,credited,delta:credited-scheduled};
+      scheduled,credited,delta:credited-scheduled,fullScheduled};
   }),[summary,settings.year]);
 
   const recent = useMemo(()=>[...summary.filter(d=>d.entry).map(d=>d.entry)].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,listLimit),[summary,listLimit]);
@@ -851,6 +863,7 @@ function App({ user }) {
                     const workDays = monthDays; // alle Tage anzeigen
                     return (
                       <MonthAccordion key={m.month} month={m} days={workDays}
+                        isCurrentMonth={m.month===currentMonth}
                         holidayLookup={holidayLookup} settings={settings}
                         onEdit={(entry)=>{ const isOld=entry.date<TWO_BLOCK_START; setNewEntry({date:entry.date,type:entry.type,start:entry.start||"08:00",end:entry.end||"16:00",start2:isOld?"":entry.start2||"12:30",end2:isOld?"":entry.end2||"16:00",note:entry.note||"",manualBreakMin:entry.manualBreakMin??null}); setIsEditing(true); setActiveTab("erfassung"); }}
                       />
