@@ -587,14 +587,15 @@ function App({ user }) {
     const allScheduled=summary.reduce((s,d)=>s+d.scheduled,0);
     const elapsedScheduled=past.reduce((s,d)=>s+d.scheduled,0);
     const elapsedCredited=past.reduce((s,d)=>s+d.credited,0);
-    const vacationTaken=entries.filter(e=>e.type==="vacation"&&scheduledHours(e.date,settings)>0).length;
+    const vacationTaken=entries.filter(e=>e.type==="vacation"&&scheduledHours(e.date,settings)>0&&e.date<=TODAY).length;
+    const vacationPlanned=entries.filter(e=>e.type==="vacation"&&scheduledHours(e.date,settings)>0&&e.date>TODAY).length;
     const sickTaken=entries.filter(e=>e.type==="sick"&&scheduledHours(e.date,settings)>0).length;
     const compTaken=entries.filter(e=>e.type==="comp"&&scheduledHours(e.date,settings)>0).length;
     const holidayTaken=summary.filter(d=>d.entry?.type==="holiday").length;
     return {allScheduled,elapsedScheduled,elapsedCredited,
       flexNow:elapsedCredited-elapsedScheduled,
-      vacationTaken,sickTaken,compTaken,holidayTaken,
-      vacationRemaining:Math.max(0,(settings.annualVacationDays+(settings.vacationCarryover||0))-vacationTaken)};
+      vacationTaken,vacationPlanned,sickTaken,compTaken,holidayTaken,
+      vacationRemaining:Math.max(0,(settings.annualVacationDays+(settings.vacationCarryover||0))-vacationTaken-vacationPlanned)};
   },[summary,entries,settings]);
 
   const currentMonth = parseIso(TODAY).getMonth()+1;
@@ -781,7 +782,7 @@ function App({ user }) {
                   <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-4">
                     <p className="text-xs text-emerald-600 font-medium">Urlaub offen</p>
                     <p className="text-2xl font-black text-emerald-800 mt-1">{stats.vacationRemaining}</p>
-                    <p className="text-xs text-emerald-600 mt-0.5">von {settings.annualVacationDays} Tagen</p>
+                    <p className="text-xs text-emerald-600 mt-0.5">{stats.vacationPlanned>0?`+ ${stats.vacationPlanned} geplant · `:""}von {settings.annualVacationDays+(settings.vacationCarryover||0)} Tagen</p>
                   </div>
                   <div className="bg-rose-50 border border-rose-100 rounded-2xl p-4">
                     <p className="text-xs text-rose-600 font-medium">Krankenstand</p>
@@ -990,32 +991,38 @@ function App({ user }) {
                     </div>
                     <div className="text-right">
                       <p className="text-2xl font-black text-emerald-800">{stats.vacationRemaining}</p>
-                      <p className="text-xs text-emerald-600">Tage offen</p>
+                      <p className="text-xs text-emerald-600">Tage frei verfügbar</p>
                     </div>
                   </div>
                   {/* Fortschrittsbalken */}
-                  <div className="h-3 bg-emerald-200 rounded-full overflow-hidden">
-                    <div className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+                  <div className="h-3 bg-emerald-200 rounded-full overflow-hidden flex">
+                    <div className="h-full bg-rose-400 transition-all duration-500"
                       style={{width:`${Math.min(100,(stats.vacationTaken/(settings.annualVacationDays+(settings.vacationCarryover||0)))*100)}%`}}/>
+                    <div className="h-full bg-amber-400 transition-all duration-500"
+                      style={{width:`${Math.min(100,(stats.vacationPlanned/(settings.annualVacationDays+(settings.vacationCarryover||0)))*100)}%`}}/>
                   </div>
                   {/* Aufschlüsselung */}
-                  <div className="grid grid-cols-3 gap-3 text-center">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-center">
                     <div className="bg-white rounded-xl p-3">
-                      <p className="text-lg font-bold text-emerald-800">{settings.annualVacationDays}</p>
-                      <p className="text-xs text-emerald-600">Jahresurlaub</p>
+                      <p className="text-lg font-bold text-emerald-800">{settings.annualVacationDays+(settings.vacationCarryover||0)}</p>
+                      <p className="text-xs text-emerald-600">Gesamt</p>
                     </div>
                     <div className="bg-white rounded-xl p-3">
-                      <p className="text-lg font-bold text-blue-700">{settings.vacationCarryover||0}</p>
-                      <p className="text-xs text-blue-600">Übertrag Vorjahr</p>
+                      <p className="text-lg font-bold text-rose-600">{stats.vacationTaken}</p>
+                      <p className="text-xs text-rose-500">Verbraucht</p>
                     </div>
                     <div className="bg-white rounded-xl p-3">
-                      <p className="text-lg font-bold text-rose-700">{stats.vacationTaken}</p>
-                      <p className="text-xs text-rose-600">Verbraucht</p>
+                      <p className="text-lg font-bold text-amber-600">{stats.vacationPlanned}</p>
+                      <p className="text-xs text-amber-500">Geplant</p>
+                    </div>
+                    <div className="bg-white rounded-xl p-3 ring-2 ring-emerald-300">
+                      <p className="text-lg font-bold text-emerald-700">{stats.vacationRemaining}</p>
+                      <p className="text-xs text-emerald-600">Noch frei</p>
                     </div>
                   </div>
                   {/* Stunden */}
                   <div className="bg-white rounded-xl p-3 text-xs text-slate-500 flex justify-between">
-                    <span>Gesamt verfügbar: <strong className="text-slate-700">{settings.annualVacationDays+(settings.vacationCarryover||0)} Tage</strong></span>
+                    <span>Gesamt: <strong className="text-slate-700">{settings.annualVacationDays+(settings.vacationCarryover||0)} Tage</strong> ({settings.annualVacationDays} + {settings.vacationCarryover||0} Übertrag)</span>
                     <span>= <strong className="text-slate-700">{fh((settings.annualVacationDays+(settings.vacationCarryover||0))*(settings.vacationHoursPerDay||8))}</strong></span>
                   </div>
                 </div>
