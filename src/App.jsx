@@ -373,6 +373,109 @@ function Root() {
   return <App user={user} />;
 }
 
+
+// ─── Month Accordion ─────────────────────────────────────────────────────────
+function MonthAccordion({ month, days, holidayLookup, settings, onEdit }) {
+  const [open, setOpen] = useState(false);
+
+  // Running saldo
+  let running = 0;
+  const rows = days.map(d => {
+    running += d.delta;
+    return { ...d, running };
+  });
+
+  return (
+    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+      {/* Header — always visible, click to toggle */}
+      <button onClick={()=>setOpen(v=>!v)}
+        className="w-full flex items-center justify-between px-6 py-4 hover:bg-slate-50 transition-colors">
+        <div className="flex items-center gap-4">
+          <span className="font-semibold text-slate-700 w-24 text-left">{month.label}</span>
+          <div className="h-2 w-32 bg-slate-100 rounded-full overflow-hidden">
+            <div className={`h-full rounded-full ${month.credited>=month.scheduled?"bg-emerald-400":"bg-blue-400"}`}
+              style={{width:`${Math.min(100,month.scheduled>0?(month.credited/month.scheduled)*100:0)}%`}}/>
+          </div>
+          <span className="text-xs text-slate-400">Soll {fh(month.scheduled)} · Ist {fh(month.credited)}</span>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className={`text-lg font-bold ${month.delta>=0?"text-emerald-600":"text-rose-600"}`}>{fs(month.delta)}</span>
+          <span className="text-slate-400 text-sm">{open?"▲":"▼"}</span>
+        </div>
+      </button>
+
+      {/* Detail table */}
+      {open&&(
+        <div className="border-t border-slate-100">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-xs text-slate-400 bg-slate-50">
+                <th className="text-left px-6 py-2 font-medium">Datum</th>
+                <th className="text-left px-3 py-2 font-medium">Tag</th>
+                <th className="text-left px-3 py-2 font-medium">Typ</th>
+                <th className="text-left px-3 py-2 font-medium">Kommt</th>
+                <th className="text-left px-3 py-2 font-medium">Pause</th>
+                <th className="text-left px-3 py-2 font-medium">Geht</th>
+                <th className="text-right px-3 py-2 font-medium">Ist</th>
+                <th className="text-right px-3 py-2 font-medium">Soll</th>
+                <th className="text-right px-3 py-2 font-medium">Tag Δ</th>
+                <th className="text-right px-6 py-2 font-medium">Kumuliert</th>
+                <th className="px-3 py-2"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map(({date,entry,scheduled,credited,delta,running})=>{
+                const isHol = holidayLookup.has(date);
+                const holName = holidayLookup.get(date);
+                const et = entry?.type;
+                const wd = ["So","Mo","Di","Mi","Do","Fr","Sa"][parseIso(date).getDay()];
+                const typeColors = {work:"text-slate-600",vacation:"text-emerald-600",sick:"text-rose-600",comp:"text-amber-600",holiday:"text-violet-600"};
+                const typeLabel = isHol ? holName : (et ? ENTRY_TYPES[et]?.label : "—");
+
+                // Format time display
+                let zeitVm = "—", pause = "—", zeitNm = "";
+                if(entry?.type==="work") {
+                  if(entry.start && entry.end) zeitVm = entry.start+"–"+entry.end;
+                  if(entry.start2 && entry.end2) { pause = entry.end+"–"+entry.start2; zeitNm = entry.start2+"–"+entry.end2; }
+                  else if(entry.start && entry.end && date < TWO_BLOCK_START) pause = "30 min";
+                }
+
+                return (
+                  <tr key={date} className="border-t border-slate-50 hover:bg-slate-50 transition-colors">
+                    <td className="px-6 py-2.5 font-mono text-xs text-slate-500">{fd(date)}</td>
+                    <td className="px-3 py-2.5 text-xs text-slate-400">{wd}</td>
+                    <td className={`px-3 py-2.5 text-xs font-medium ${typeColors[isHol?"holiday":et]||"text-slate-400"}`}>{typeLabel}</td>
+                    <td className="px-3 py-2.5 text-xs text-slate-600 font-mono">{zeitVm}</td>
+                    <td className="px-3 py-2.5 text-xs text-slate-400 font-mono">{pause}</td>
+                    <td className="px-3 py-2.5 text-xs text-slate-600 font-mono">{zeitNm}</td>
+                    <td className="px-3 py-2.5 text-xs text-right font-medium text-slate-700">{credited>0?fh(credited):"—"}</td>
+                    <td className="px-3 py-2.5 text-xs text-right text-slate-400">{scheduled>0?fh(scheduled):"—"}</td>
+                    <td className={`px-3 py-2.5 text-xs text-right font-semibold ${delta>=0?"text-emerald-600":"text-rose-600"}`}>{scheduled>0||credited>0?fs(delta):"—"}</td>
+                    <td className={`px-6 py-2.5 text-xs text-right font-bold ${running>=0?"text-emerald-700":"text-rose-700"}`}>{fs(running)}</td>
+                    <td className="px-3 py-2.5">
+                      {entry&&entry.type!=="holiday"&&<button onClick={()=>onEdit(entry)} className="text-slate-300 hover:text-slate-600 text-xs px-2 py-1 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">✏️</button>}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+            {/* Monats-Summe */}
+            <tfoot>
+              <tr className="bg-slate-50 border-t-2 border-slate-200">
+                <td colSpan="6" className="px-6 py-3 text-xs font-semibold text-slate-600">Summe {month.label}</td>
+                <td className="px-3 py-3 text-xs text-right font-bold text-slate-700">{fh(month.credited)}</td>
+                <td className="px-3 py-3 text-xs text-right font-bold text-slate-500">{fh(month.scheduled)}</td>
+                <td className={`px-3 py-3 text-sm text-right font-black ${month.delta>=0?"text-emerald-700":"text-rose-700"}`}>{fs(month.delta)}</td>
+                <td colSpan="2" className="px-6 py-3 text-xs text-right text-slate-400">Monatssaldo</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Main App ────────────────────────────────────────────────────────────────
 function App({ user }) {
   const [settings,setSettings]   = useState(defaultSettings);
@@ -686,58 +789,26 @@ function App({ user }) {
 
             {/* ── 2026 ──────────────────────────────────────────────── */}
             {activeTab==="aktuell"&&(
-              <div className="space-y-5">
+              <div className="space-y-6">
                 <div className="grid gap-3 md:grid-cols-3">
                   <Stat title="Soll bis heute"  value={fh(stats.elapsedScheduled)}/>
                   <Stat title="Ist bis heute"   value={fh(stats.elapsedCredited)}/>
                   <Stat title="Saldo 2026"       value={fs(stats.flexNow)} color={stats.flexNow>=0?"text-emerald-700":"text-rose-700"}/>
                 </div>
                 <YearProgress label="Fortschritt bis heute" soll={stats.elapsedScheduled} ist={stats.elapsedCredited}/>
-                <div className="grid gap-3 md:grid-cols-3">
-                  {monthlyOverview.map(m=>(
-                    <div key={m.month} className="bg-slate-50 rounded-2xl p-4">
-                      <p className="text-xs text-slate-500">{m.label}</p>
-                      <p className={`text-xl font-bold mt-1 ${m.delta>=0?"text-emerald-700":"text-rose-700"}`}>{fs(m.delta)}</p>
-                      <p className="text-xs text-slate-400 mt-1">Soll {fh(m.scheduled)} · Ist {fh(m.credited)}</p>
-                      {m.scheduled>0&&(
-                        <div className="mt-2 h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                          <div className={`h-full rounded-full ${m.credited>=m.scheduled?"bg-emerald-400":"bg-blue-400"}`} style={{width:`${Math.min(100,m.scheduled>0?(m.credited/m.scheduled)*100:0)}%`}}/>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-                <div>
-                  <h3 className="font-semibold text-slate-700 mb-3">Kalender 2026</h3>
-                  <div className="space-y-5">
-                    {monthlyOverview.map(month=>{
-                      const cells=monthGrid(settings.year,month.month);
-                      return (
-                        <div key={month.month}>
-                          <p className="text-sm font-medium text-slate-600 mb-2">{month.label}</p>
-                          <div className="grid grid-cols-7 gap-1 text-xs text-center text-slate-400 mb-1">
-                            {["Mo","Di","Mi","Do","Fr","Sa","So"].map(d=><div key={d}>{d}</div>)}
-                          </div>
-                          <div className="grid grid-cols-7 gap-1">
-                            {cells.map((iso,idx)=>{
-                              if(!iso) return <div key={idx} className="h-8 rounded-lg"/>;
-                              const day=summaryByDate.get(iso);
-                              const isHol=holidayLookup.has(iso);
-                              const et=day?.entry?.type;
-                              let cls="h-8 rounded-lg text-xs flex items-center justify-center border font-medium ";
-                              if(isHol) cls+="bg-violet-100 text-violet-700 border-violet-200";
-                              else if(et==="vacation") cls+="bg-emerald-100 text-emerald-700 border-emerald-200";
-                              else if(et==="sick") cls+="bg-rose-100 text-rose-700 border-rose-200";
-                              else if(et==="comp") cls+="bg-amber-100 text-amber-700 border-amber-200";
-                              else if(et==="work") cls+="bg-slate-100 text-slate-600 border-slate-200";
-                              else cls+="bg-white text-slate-300 border-slate-100";
-                              return <div key={iso} className={cls} title={holidayLookup.get(iso)||ENTRY_TYPES[et]?.label||""}>{Number(iso.slice(-2))}</div>;
-                            })}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+
+                {/* Aufklappbare Monate */}
+                <div className="space-y-3">
+                  {monthlyOverview.map(m=>{
+                    const monthDays = summary.filter(d=>parseIso(d.date).getMonth()+1===m.month);
+                    const workDays = monthDays.filter(d=>d.scheduled>0||d.credited>0);
+                    return (
+                      <MonthAccordion key={m.month} month={m} days={workDays}
+                        holidayLookup={holidayLookup} settings={settings}
+                        onEdit={(entry)=>{ setNewEntry({date:entry.date,type:entry.type,start:entry.start||"08:00",end:entry.end||"12:00",start2:entry.start2||"12:30",end2:entry.end2||"16:00",note:entry.note||"",manualBreakMin:entry.manualBreakMin??null}); setIsEditing(true); setActiveTab("erfassung"); }}
+                      />
+                    );
+                  })}
                 </div>
               </div>
             )}
