@@ -1,3 +1,4 @@
+
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 
@@ -612,7 +613,11 @@ function App({ user }) {
     const allDays=summary.filter(d=>parseIso(d.date).getMonth()+1===month);
     const scheduled=days.reduce((s,d)=>s+d.scheduled,0);
     const credited=days.reduce((s,d)=>s+d.credited,0);
-    const fullScheduled=allDays.filter(d=>d.scheduled>0&&(d.date<=TODAY||d.entry!=null)).reduce((s,d)=>s+d.scheduled,0);
+    // fullScheduled: alle Mo-Do Tage × 8h, nur Feiertage = 0 (wie Arbeitgeber, Ausgleich/Urlaub zählt als Arbeitstag)
+    const fullScheduled=allDays.reduce((s,d)=>{
+      const isHol=holidayMap(settings.year).has(d.date);
+      return s+(isHol?0:scheduledHours(d.date,settings));
+    },0);
     return {month,label:new Date(settings.year,i,1).toLocaleDateString("de-AT",{month:"long"}),
       scheduled,credited,delta:credited-scheduled,fullScheduled};
   }),[summary,settings.year]);
