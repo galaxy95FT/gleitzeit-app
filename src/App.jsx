@@ -862,13 +862,14 @@ function App({ user }) {
                   {newEntry.type==="work"&&(
                     <>
                       <div className="bg-slate-50 rounded-xl p-3 space-y-3">
-                          {/* Toggle 1 Block / 2 Blöcke */}
-                          <div className="flex items-center justify-between">
-                            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">{useTwoBlocks?"2 Blöcke (mit Pause)":"1 Block (Pause automatisch)"}</p>
+                          {/* Toggle 1 Block / 2 Blöcke — Schieberegler */}
+                          <div className="flex items-center gap-3">
+                            <span className={`text-xs font-medium ${!useTwoBlocks?"text-slate-700":"text-slate-400"}`}>1 Block</span>
                             <button type="button" onClick={()=>setUseTwoBlocks(v=>!v)}
-                              className="text-xs px-3 py-1 border border-slate-300 rounded-lg text-slate-500 hover:bg-slate-100 transition-colors">
-                              {useTwoBlocks?"→ 1 Block":"→ 2 Blöcke"}
+                              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${useTwoBlocks?"bg-violet-600":"bg-slate-300"}`}>
+                              <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${useTwoBlocks?"translate-x-6":"translate-x-1"}`}/>
                             </button>
+                            <span className={`text-xs font-medium ${useTwoBlocks?"text-slate-700":"text-slate-400"}`}>2 Blöcke</span>
                           </div>
                           {/* Block 1 */}
                           <div className="grid gap-3 grid-cols-2">
