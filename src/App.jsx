@@ -163,8 +163,7 @@ function buildSeedEntries(year) {
   records[d(4,27)]={date:d(4,27),type:"vacation",actualHours:0,note:"Urlaub"};
   records[d(4,28)]={date:d(4,28),type:"vacation",actualHours:0,note:"Urlaub"};
 
-  // Geplanter Urlaub August/September
-  eachDate(`${year}-08-24`,`${year}-09-04`).forEach(date=>{ if(isWeekday(date)) records[date]={date,type:"vacation",actualHours:0,note:"Geplanter Urlaub"}; });
+  // Geplanter Urlaub entfernt - wird manuell erfasst wenn nötig
 
   return Object.values(records).sort((a,b)=>a.date.localeCompare(b.date));
 }
