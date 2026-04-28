@@ -542,6 +542,7 @@ function App({ user }) {
   const [liveClock,setLiveClock] = useState(null);
   const [pauseClock,setPauseClock] = useState(null);
   const [newEntry,setNewEntry]   = useState({date:TODAY,type:"work",start:"08:00",end:"12:00",start2:"12:30",end2:"16:00",note:""});
+  const [vacationEnd,setVacationEnd] = useState(TODAY);
   const [activeTab,setActiveTab] = useState("dashboard");
   const [dashView,setDashView] = useState("actual"); // actual | projected
   const [isEditing,setIsEditing] = useState(false);
@@ -617,15 +618,22 @@ function App({ user }) {
   const todayDelta = (today?.credited??0)-(today?.scheduled??0);
 
   const addOrUpdateEntry=async()=>{
-    const actualHours=newEntry.type==="work"?totalWorkHours(newEntry):0;
-    const entry={...newEntry,actualHours};
-    setEntries(cur=>[...cur.filter(e=>e.date!==entry.date),entry].sort((a,b)=>a.date.localeCompare(b.date)));
     setSaving(true);
-    await supabase.from("entries").upsert({
-      date:entry.date, type:entry.type, start:entry.start||null, end:entry.end||null,
-      start2:entry.start2||null, end2:entry.end2||null, actual_hours:entry.actualHours||0,
-      manual_break_min:entry.manualBreakMin||null, note:entry.note||null,
-    });
+    if(newEntry.type==="vacation" && vacationEnd && vacationEnd>=newEntry.date) {
+      const days=eachDate(newEntry.date,vacationEnd).filter(d=>scheduledHours(d,settings)>0);
+      const newEntries=days.map(d=>({date:d,type:"vacation",actualHours:0,note:newEntry.note||"Urlaub"}));
+      setEntries(cur=>[...cur.filter(e=>!newEntries.find(n=>n.date===e.date)),...newEntries].sort((a,b)=>a.date.localeCompare(b.date)));
+      await supabase.from("entries").upsert(newEntries.map(e=>({ date:e.date, type:"vacation", start:null, end:null, start2:null, end2:null, actual_hours:0, manual_break_min:null, note:e.note, user_id:user.id })));
+    } else {
+      const actualHours=newEntry.type==="work"?totalWorkHours(newEntry):0;
+      const entry={...newEntry,actualHours};
+      setEntries(cur=>[...cur.filter(e=>e.date!==entry.date),entry].sort((a,b)=>a.date.localeCompare(b.date)));
+      await supabase.from("entries").upsert({
+        date:entry.date, type:entry.type, start:entry.start||null, end:entry.end||null,
+        start2:entry.start2||null, end2:entry.end2||null, actual_hours:entry.actualHours||0,
+        manual_break_min:entry.manualBreakMin||null, note:entry.note||null, user_id:user.id,
+      });
+    }
     setSaving(false);
   };
   const deleteEntry=async(date)=>{
@@ -820,8 +828,29 @@ function App({ user }) {
                 <div className="md:col-span-2 space-y-4">
                   <h2 className="font-semibold text-slate-700">{isEditing?"Eintrag bearbeiten":"Neuer Eintrag"}</h2>
                   <div className="grid gap-3 md:grid-cols-2">
-                    <div><label className="text-xs text-slate-500 mb-1 block">Datum</label><input type="date" value={newEntry.date} onChange={e=>setNewEntry(v=>({...v,date:e.target.value}))} className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300"/></div>
+                    <div>
+                      <label className="text-xs text-slate-500 mb-1 block">{newEntry.type==="vacation"?"Von":"Datum"}</label>
+                      <input type="date" value={newEntry.date} onChange={e=>setNewEntry(v=>({...v,date:e.target.value}))} className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300"/>
+                    </div>
                     <div><label className="text-xs text-slate-500 mb-1 block">Typ</label><select value={newEntry.type} onChange={e=>setNewEntry(v=>({...v,type:e.target.value}))} className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-slate-300">{Object.entries(ENTRY_TYPES).filter(([k])=>k!=="holiday").map(([k,m])=><option key={k} value={k}>{m.label}</option>)}</select></div>
+                    {newEntry.type==="vacation"&&(
+                      <div>
+                        <label className="text-xs text-slate-500 mb-1 block">Bis</label>
+                        <input type="date" value={vacationEnd} min={newEntry.date} onChange={e=>setVacationEnd(e.target.value)} className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300"/>
+                      </div>
+                    )}
+                    {newEntry.type==="vacation"&&vacationEnd>=newEntry.date&&(
+                      <div className="flex items-end">
+                        <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-2.5 text-sm w-full">
+                          <span className="text-emerald-700 font-medium">
+                            {eachDate(newEntry.date,vacationEnd).filter(d=>scheduledHours(d,settings)>0).length} Urlaubstage
+                          </span>
+                          <span className="text-emerald-500 text-xs ml-2">
+                            ({eachDate(newEntry.date,vacationEnd).filter(d=>!scheduledHours(d,settings)).length} Tage kein Soll)
+                          </span>
+                        </div>
+                      </div>
+                    )}
                   </div>
                   {newEntry.type==="work"&&(
                     <>
