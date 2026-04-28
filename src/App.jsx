@@ -165,11 +165,12 @@ function buildDaySummary(settings,entries) {
   const holidays=holidayMap(settings.year);
   const entryMap=new Map(entries.map(e=>[e.date,e]));
   return eachDate(`${settings.year}-01-01`,`${settings.year}-12-31`).map(date=>{
-    const autoHol=holidays.has(date)?{date,type:"holiday",actualHours:0,note:holidays.get(date)}:null;
-    const entry=entryMap.get(date)??autoHol;
     const isHoliday=holidays.has(date);
+    const autoHol=isHoliday?{date,type:"holiday",actualHours:0,note:holidays.get(date)}:null;
+    const entry=entryMap.get(date)??autoHol;
+    // Feiertage: immer 0 Soll und 0 Ist — kein Einfluss auf Saldo
     const scheduled=isHoliday?0:scheduledHours(date,settings);
-    const credited=entry?creditedHours(entry,settings):0;
+    const credited=isHoliday?0:(entry?creditedHours(entry,settings):0);
     return {date,entry,scheduled,credited,delta:credited-scheduled};
   });
 }
@@ -803,7 +804,7 @@ function App({ user }) {
                 <div className="space-y-3">
                   {monthlyOverview.map(m=>{
                     const monthDays = summary.filter(d=>parseIso(d.date).getMonth()+1===m.month);
-                    const workDays = monthDays.filter(d=>d.scheduled>0||d.credited>0);
+                    const workDays = monthDays.filter(d=>d.scheduled>0||d.credited>0||d.entry?.type==="holiday");
                     return (
                       <MonthAccordion key={m.month} month={m} days={workDays}
                         holidayLookup={holidayLookup} settings={settings}
