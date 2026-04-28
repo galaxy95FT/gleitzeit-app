@@ -242,6 +242,34 @@ function Stat({title,value,subtitle,color}) {
 
 
 
+
+// ─── Logo ─────────────────────────────────────────────────────────────────────
+function Logo({ size = 40 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 680 680" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="logoBg" cx="40%" cy="40%" r="60%">
+          <stop offset="0%" stopColor="#6d28d9"/>
+          <stop offset="100%" stopColor="#2e1065"/>
+        </radialGradient>
+      </defs>
+      <circle cx="340" cy="340" r="320" fill="url(#logoBg)"/>
+      <text x="340" y="262" textAnchor="middle" fontFamily="sans-serif" fontSize="86" fontWeight="300" fill="#ede9fe" letterSpacing="-2">stunde</text>
+      <text x="340" y="352" textAnchor="middle" fontFamily="sans-serif" fontSize="86" fontWeight="700" fill="#a855f7" letterSpacing="6">PRO</text>
+      <line x1="60" y1="375" x2="620" y2="375" stroke="#6d28d9" strokeWidth="2"/>
+      <text x="340" y="452" textAnchor="middle" fontFamily="sans-serif" fontSize="86" fontWeight="300" fill="#ede9fe" letterSpacing="-2">woche</text>
+      <text x="100" y="510" textAnchor="middle" fontFamily="sans-serif" fontSize="18" fill="#a78bfa">Mo</text>
+      <text x="183" y="510" textAnchor="middle" fontFamily="sans-serif" fontSize="18" fill="#a78bfa">Di</text>
+      <text x="266" y="510" textAnchor="middle" fontFamily="sans-serif" fontSize="18" fill="#a78bfa">Mi</text>
+      <text x="340" y="510" textAnchor="middle" fontFamily="sans-serif" fontSize="18" fill="#a78bfa">Do</text>
+      <text x="414" y="510" textAnchor="middle" fontFamily="sans-serif" fontSize="18" fill="#a78bfa">Fr</text>
+      <text x="497" y="510" textAnchor="middle" fontFamily="sans-serif" fontSize="18" fill="#a78bfa">Sa</text>
+      <text x="580" y="510" textAnchor="middle" fontFamily="sans-serif" fontSize="18" fill="#a78bfa">So</text>
+      <circle cx="340" cy="340" r="320" fill="none" stroke="#7c3aed" strokeWidth="4" opacity="0.4"/>
+    </svg>
+  );
+}
+
 // ─── Auth Pages ───────────────────────────────────────────────────────────────
 function AuthPage({ onLogin }) {
   const [mode, setMode] = useState("login"); // login | register | forgot
@@ -280,7 +308,8 @@ function AuthPage({ onLogin }) {
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-3xl shadow-sm border border-slate-100 w-full max-w-md p-8 space-y-6">
-        <div className="text-center space-y-1">
+        <div className="text-center space-y-3">
+          <div className="flex justify-center"><Logo size={80}/></div>
           <p className="text-xs uppercase tracking-widest text-slate-400">Gleitzeit 2026</p>
           <h1 className="text-2xl font-bold text-slate-800">Zeiterfassung</h1>
           <p className="text-sm text-slate-500">
@@ -640,9 +669,12 @@ function App({ user }) {
 
         {/* Header */}
         <div className="bg-white rounded-3xl p-7 shadow-sm flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div>
-            <p className="text-xs uppercase tracking-widest text-slate-400">Gleitzeit 2026</p>
-            <h1 className="mt-0.5 text-2xl font-bold text-slate-800">Zeiterfassung</h1>
+          <div className="flex items-center gap-4">
+            <Logo size={56}/>
+            <div>
+              <p className="text-xs uppercase tracking-widest text-slate-400">Gleitzeit 2026</p>
+              <h1 className="mt-0.5 text-2xl font-bold text-slate-800">Zeiterfassung</h1>
+            </div>
           </div>
           <div className="flex flex-wrap gap-2">
             <button onClick={handleClockIn} className="px-4 py-2 bg-slate-800 text-white rounded-xl text-sm font-medium hover:bg-slate-700 transition-colors">⏱ Kommt</button>
