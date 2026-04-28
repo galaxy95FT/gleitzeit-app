@@ -157,7 +157,8 @@ function buildSeedEntries(year) {
 function creditedHours(entry,settings) {
   const sched=scheduledHours(entry.date,settings);
   if(entry.type==="work") return (entry.start&&entry.end)?totalWorkHours(entry):(entry.actualHours??0);
-  if(["vacation","sick","comp","holiday"].includes(entry.type)) return sched;
+  if(entry.type==="holiday") return 0;
+  if(["vacation","sick","comp"].includes(entry.type)) return sched;
   return 0;
 }
 function buildDaySummary(settings,entries) {
