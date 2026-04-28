@@ -424,13 +424,13 @@ function Root() {
 
 
 // ─── Month Accordion ─────────────────────────────────────────────────────────
-function MonthAccordion({ month, days, holidayLookup, settings, onEdit, isCurrentMonth }) {
+function MonthAccordion({ month, days, holidayLookup, settings, onEdit, isCurrentMonth, today }) {
   const [open, setOpen] = useState(false);
 
   // Running saldo
   let running = 0;
   const rows = days.map(d => {
-    const isFutureEmpty = d.date > TODAY && !d.entry;
+    const isFutureEmpty = d.date > today && !d.entry;
     if(!isFutureEmpty) running += d.delta;
     return { ...d, running, isFutureEmpty };
   });
@@ -991,6 +991,7 @@ function App({ user }) {
                     return (
                       <MonthAccordion key={m.month} month={m} days={workDays}
                         isCurrentMonth={m.month===currentMonth}
+                        today={TODAY}
                         holidayLookup={holidayLookup} settings={settings}
                         onEdit={(entry)=>{ const has2=!!(entry.start2&&entry.end2); setUseTwoBlocks(has2); setNewEntry({date:entry.date,type:entry.type,start:entry.start||"08:00",end:entry.end||"14:00",start2:entry.start2||"14:30",end2:entry.end2||"16:30",note:entry.note||"",manualBreakMin:entry.manualBreakMin??null,countAsSollDay:entry.countAsSollDay||false}); setIsEditing(true); setActiveTab("erfassung"); }}
                       />
