@@ -430,8 +430,9 @@ function MonthAccordion({ month, days, holidayLookup, settings, onEdit, isCurren
   // Running saldo
   let running = 0;
   const rows = days.map(d => {
-    running += d.delta;
-    return { ...d, running };
+    const isFutureEmpty = d.date > TODAY && !d.entry;
+    if(!isFutureEmpty) running += d.delta;
+    return { ...d, running, isFutureEmpty };
   });
 
   return (
@@ -505,8 +506,8 @@ function MonthAccordion({ month, days, holidayLookup, settings, onEdit, isCurren
                     <td className="px-3 py-2.5 text-xs text-slate-600 font-mono">{zeitNm}</td>
                     <td className="px-3 py-2.5 text-xs text-right font-medium text-slate-700">{(isWeekend||isHol)?"—":credited>0?fh(credited):"—"}</td>
                     <td className="px-3 py-2.5 text-xs text-right text-slate-400">{(isWeekend||isHol)?"—":scheduled>0?fh(scheduled):"—"}</td>
-                    <td className={`px-3 py-2.5 text-xs text-right font-semibold ${delta>=0?"text-emerald-600":"text-rose-600"}`}>{(isWeekend||isHol)?"—":scheduled>0||credited>0?fs(delta):"—"}</td>
-                    <td className={`px-6 py-2.5 text-xs text-right font-bold ${running>=0?"text-emerald-700":"text-rose-700"}`}>{(isWeekend||isHol)?"":fs(running)}</td>
+                    <td className={`px-3 py-2.5 text-xs text-right font-semibold ${isFutureEmpty?"text-rose-400":delta>=0?"text-emerald-600":"text-rose-600"}`}>{(isWeekend||isHol)?"—":isFutureEmpty?fs(-scheduled):scheduled>0||credited>0?fs(delta):"—"}</td>
+                    <td className={`px-6 py-2.5 text-xs text-right font-bold ${running>=0?"text-emerald-700":"text-rose-700"}`}>{(isWeekend||isHol||isFutureEmpty)?"":fs(running)}</td>
                     <td className="px-3 py-2.5">
                       {entry&&entry.type!=="holiday"&&<button onClick={()=>onEdit(entry)} className="text-slate-300 hover:text-slate-600 text-xs px-2 py-1 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">✏️</button>}
                     </td>
@@ -548,6 +549,7 @@ function App({ user }) {
   const [vacationEnd,setVacationEnd] = useState(TODAY);
   const [activeTab,setActiveTab] = useState("dashboard");
   const [dashView,setDashView] = useState("actual"); // actual | projected
+  const [expandedMonths,setExpandedMonths] = useState({});
   const [isEditing,setIsEditing] = useState(false);
   const [listFilter,setListFilter] = useState({work:true,sick:true,comp:false,vacation:false,holiday:false,free:false});
   const [listLimit,setListLimit] = useState(50);
@@ -777,7 +779,7 @@ function App({ user }) {
                   <h3 className="text-sm font-semibold text-slate-600 mb-3">
                     {dashView==="actual"?"Monate 2026 — tatsächlich (bis heute)":"Monate 2026 — rechnerisch (ganzes Jahr)"}
                   </h3>
-                  <div className="space-y-3">
+                  <div className="space-y-2">
                     {(dashView==="actual"
                       ? [...monthlyOverview].filter(m=>m.scheduled>0).reverse()
                       : [...monthlyOverview].filter(m=>m.fullScheduled>0)
@@ -787,16 +789,39 @@ function App({ user }) {
                       const over = m.credited > soll;
                       const future = dashView==="projected" && m.credited===0 && m.fullScheduled>0;
                       const barColor = future ? "bg-slate-100" : m.credited===0 ? "bg-slate-200" : over ? "bg-emerald-400" : "bg-blue-400";
+                      const isExpanded = expandedMonths[m.month];
+                      // Arbeitstage des Monats für Aufklappansicht
+                      const monthWorkDays = future ? summary.filter(d=>parseIso(d.date).getMonth()+1===m.month&&scheduledHours(d.date,settings)>0&&!holidayMap(settings.year).has(d.date)) : [];
                       return (
-                        <div key={m.month} className="grid items-center gap-2" style={{gridTemplateColumns:"80px 1fr 110px"}}>
-                          <span className={`text-xs text-right pr-2 ${future?"text-slate-300":"text-slate-500"}`}>{m.label}</span>
-                          <div className="h-7 bg-slate-100 rounded-full overflow-hidden relative">
-                            <div className={`h-full rounded-full transition-all duration-500 ${barColor}`} style={{width:`${pct}%`}}/>
-                            {!future&&soll>0&&<span className="absolute inset-0 flex items-center justify-center text-xs font-medium text-slate-600 mix-blend-multiply">{m.credited>0?fh(m.credited):""}</span>}
+                        <div key={m.month}>
+                          <div className={`grid items-center gap-2 ${future?"cursor-pointer hover:opacity-80":""}`}
+                            style={{gridTemplateColumns:"80px 1fr 110px 20px"}}
+                            onClick={future?()=>setExpandedMonths(e=>({...e,[m.month]:!e[m.month]})):undefined}>
+                            <span className={`text-xs text-right pr-2 ${future?"text-slate-400":"text-slate-500"}`}>{m.label}</span>
+                            <div className="h-7 bg-slate-100 rounded-full overflow-hidden relative">
+                              <div className={`h-full rounded-full transition-all duration-500 ${barColor}`} style={{width:`${pct}%`}}/>
+                              {!future&&soll>0&&<span className="absolute inset-0 flex items-center justify-center text-xs font-medium text-slate-600 mix-blend-multiply">{m.credited>0?fh(m.credited):""}</span>}
+                            </div>
+                            <span className={`text-xs font-semibold text-right ${future?"text-slate-400":m.delta>=0?"text-emerald-700":"text-rose-700"}`}>
+                              {future?fh(m.fullScheduled):fs(m.delta)}
+                            </span>
+                            <span className="text-xs text-slate-300">{future?(isExpanded?"▲":"▼"):""}</span>
                           </div>
-                          <span className={`text-xs font-semibold text-right ${future?"text-slate-300":m.delta>=0?"text-emerald-700":"text-rose-700"}`}>
-                            {future?fh(m.fullScheduled):fs(m.delta)}
-                          </span>
+                          {/* Aufgeklappte Arbeitstage */}
+                          {future&&isExpanded&&(
+                            <div className="ml-20 mt-1 mb-2 bg-slate-50 rounded-xl p-3 space-y-1">
+                              <p className="text-xs text-slate-400 font-medium mb-2">{monthWorkDays.length} Arbeitstage · {fh(m.fullScheduled)} Soll</p>
+                              {monthWorkDays.map(d=>{
+                                const wd=["So","Mo","Di","Mi","Do","Fr","Sa"][parseIso(d.date).getDay()];
+                                return (
+                                  <div key={d.date} className="flex justify-between text-xs text-slate-500">
+                                    <span>{fd(d.date)} {wd}</span>
+                                    <span className="text-slate-400">{fh(scheduledHours(d.date,settings))} Soll</span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
                         </div>
                       );
                     })}
