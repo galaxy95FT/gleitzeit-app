@@ -824,7 +824,7 @@ function App({ user }) {
                     return (
                       <MonthAccordion key={m.month} month={m} days={workDays}
                         holidayLookup={holidayLookup} settings={settings}
-                        onEdit={(entry)=>{ setNewEntry({date:entry.date,type:entry.type,start:entry.start||"08:00",end:entry.end||"12:00",start2:entry.start2||"12:30",end2:entry.end2||"16:00",note:entry.note||"",manualBreakMin:entry.manualBreakMin??null}); setIsEditing(true); setActiveTab("erfassung"); }}
+                        onEdit={(entry)=>{ const isOld=entry.date<TWO_BLOCK_START; setNewEntry({date:entry.date,type:entry.type,start:entry.start||"08:00",end:entry.end||"16:00",start2:isOld?"":entry.start2||"12:30",end2:isOld?"":entry.end2||"16:00",note:entry.note||"",manualBreakMin:entry.manualBreakMin??null}); setIsEditing(true); setActiveTab("erfassung"); }}
                       />
                     );
                   })}
@@ -889,7 +889,7 @@ function App({ user }) {
                             <td className="py-2 pr-3 text-slate-500">{fh(sched)}</td>
                             <td className={`py-2 pr-3 font-semibold ${delta>=0?"text-emerald-700":"text-rose-700"}`}>{fs(delta)}</td>
                             <td className="py-2">
-                              <button onClick={()=>{setNewEntry({date:entry.date,type:entry.type,start:entry.start||"08:00",end:entry.end||"12:00",start2:entry.start2||"12:30",end2:entry.end2||"16:00",note:entry.note||""});setIsEditing(true);setActiveTab("erfassung");}}
+                              <button onClick={()=>{const isOld=entry.date<TWO_BLOCK_START; setNewEntry({date:entry.date,type:entry.type,start:entry.start||"08:00",end:entry.end||"16:00",start2:isOld?"":entry.start2||"12:30",end2:isOld?"":entry.end2||"16:00",note:entry.note||""});setIsEditing(true);setActiveTab("erfassung");}}
                                 className="text-slate-400 hover:text-slate-700 px-2 py-1 border border-slate-200 rounded-lg text-xs hover:bg-slate-50 transition-colors">✏️</button>
                             </td>
                           </tr>
