@@ -747,11 +747,20 @@ function App({ user }) {
 
                 {/* Year progress bar */}
                 <div className="grid gap-6 md:grid-cols-2">
-                  {dashView==="actual"?(
-                    <YearProgress label="Jahresfortschritt — tatsächlich" soll={stats.elapsedScheduled} ist={stats.elapsedCredited}/>
-                  ):(
-                    <YearProgress label="Jahresfortschritt — rechnerisch" soll={stats.allScheduled} ist={stats.elapsedCredited}/>
-                  )}
+                  <div className="space-y-4">
+                    {dashView==="actual"?(
+                      <YearProgress label="Jahresfortschritt — tatsächlich" soll={stats.elapsedScheduled} ist={stats.elapsedCredited}/>
+                    ):(
+                      <>
+                        <YearProgress label="Jahresfortschritt — rechnerisch" soll={stats.allScheduled} ist={stats.elapsedCredited}/>
+                        <YearProgress
+                          label={"Monatsfortschritt — " + (monthlyOverview[currentMonth-1]?.label||"")}
+                          soll={monthlyOverview[currentMonth-1]?.fullScheduled||0}
+                          ist={monthlyOverview[currentMonth-1]?.credited||0}
+                        />
+                      </>
+                    )}
+                  </div>
                   <div className="bg-white rounded-2xl p-7 shadow-sm border border-slate-100 space-y-4">
                     <span className="text-xs text-slate-400 uppercase tracking-wide">Gleitzeitsaldo heute</span>
                     <p className={`text-4xl font-black ${stats.flexNow>=0?"text-emerald-600":"text-rose-600"}`}>{fs(stats.flexNow)}</p>
@@ -760,14 +769,6 @@ function App({ user }) {
                         <div className="flex justify-between text-xs">
                           <span className="text-slate-400">Jahres-Soll gesamt</span>
                           <strong className="text-slate-600">{fh(stats.allScheduled)}</strong>
-                        </div>
-                        <div className="flex justify-between text-xs">
-                          <span className="text-slate-400">Monatssoll {monthlyOverview[currentMonth-1]?.label}</span>
-                          <strong className="text-violet-600">{fh(monthlyOverview[currentMonth-1]?.fullScheduled||0)}</strong>
-                        </div>
-                        <div className="flex justify-between text-xs">
-                          <span className="text-slate-400">Davon bereits geleistet</span>
-                          <strong className="text-slate-600">{fh(monthlyOverview[currentMonth-1]?.credited||0)}</strong>
                         </div>
                         <div className="flex justify-between text-xs border-t border-slate-100 pt-1">
                           <span className="text-slate-400">Noch zu leisten im Monat</span>
