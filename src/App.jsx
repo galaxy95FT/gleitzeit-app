@@ -183,10 +183,12 @@ function buildDaySummary(settings,entries) {
     const isHoliday=holidays.has(date);
     const autoHol=isHoliday?{date,type:"holiday",actualHours:0,note:holidays.get(date)}:null;
     const entry=entryMap.get(date)??autoHol;
-    // Feiertage: immer 0 Soll und 0 Ist — kein Einfluss auf Saldo
     const isComp=entry?.type==="comp";
-    const scheduled=(isHoliday||isComp)?0:scheduledHours(date,settings);
-    const credited=isHoliday?0:(entry?creditedHours(entry,settings):0);
+    // Feiertage/Ausgleich: 0 Soll und 0 Ist
+    // countAsSollDay: Freitag etc. als regulärer Arbeitstag mit 8h Soll
+    const baseSched=scheduledHours(date,settings);
+    const scheduled=isHoliday||isComp?0:entry?.countAsSollDay&&baseSched===0?8:baseSched;
+    const credited=isHoliday||isComp?0:(entry?creditedHours(entry,settings):0);
     return {date,entry,scheduled,credited,delta:credited-scheduled};
   });
 }
@@ -541,7 +543,7 @@ function App({ user }) {
   const [saving,setSaving]       = useState(false);
   const [liveClock,setLiveClock] = useState(null);
   const [pauseClock,setPauseClock] = useState(null);
-  const [newEntry,setNewEntry]   = useState({date:TODAY,type:"work",start:"08:00",end:"12:00",start2:"12:30",end2:"16:00",note:""});
+  const [newEntry,setNewEntry]   = useState({date:TODAY,type:"work",start:"08:00",end:"12:00",start2:"12:30",end2:"16:00",note:"",countAsSollDay:false});
   const [vacationEnd,setVacationEnd] = useState(TODAY);
   const [activeTab,setActiveTab] = useState("dashboard");
   const [dashView,setDashView] = useState("actual"); // actual | projected
@@ -558,7 +560,7 @@ function App({ user }) {
       if(sData) setSettings({ year:sData.year, annualVacationDays:sData.annual_vacation_days, vacationHoursPerDay:sData.vacation_hours_per_day, vacationCarryover:sData.vacation_carryover, autoBreakThresholdH:sData.auto_break_threshold_h, autoBreakMinutes:sData.auto_break_minutes, scheduledWeekdays:sData.scheduled_weekdays });
       const { data: eData } = await supabase.from("entries").select("*").eq("user_id",user.id).order("date");
       if(eData && eData.length > 0) {
-        setEntries(eData.map(r=>({ date:r.date, type:r.type, start:r.start, end:r.end, start2:r.start2, end2:r.end2, actualHours:r.actual_hours, manualBreakMin:r.manual_break_min, note:r.note })));
+        setEntries(eData.map(r=>({ date:r.date, type:r.type, start:r.start, end:r.end, start2:r.start2, end2:r.end2, actualHours:r.actual_hours, manualBreakMin:r.manual_break_min, note:r.note, countAsSollDay:r.count_as_soll_day||false })));
       } else if(!seedLoaded.current) {
         seedLoaded.current = true;
         const seed = buildSeedEntries(2026);
@@ -632,6 +634,7 @@ function App({ user }) {
         date:entry.date, type:entry.type, start:entry.start||null, end:entry.end||null,
         start2:entry.start2||null, end2:entry.end2||null, actual_hours:entry.actualHours||0,
         manual_break_min:entry.manualBreakMin||null, note:entry.note||null, user_id:user.id,
+        count_as_soll_day:entry.countAsSollDay||false,
       });
     }
     setSaving(false);
@@ -889,6 +892,20 @@ function App({ user }) {
                         </div>
                       )}
                     </>
+                  )}
+                  {newEntry.type==="work"&&scheduledHours(newEntry.date,settings)===0&&(
+                    <div className="md:col-span-2">
+                      <div className={`rounded-xl p-3 flex items-center justify-between border ${newEntry.countAsSollDay?"bg-blue-50 border-blue-200":"bg-slate-50 border-slate-100"}`}>
+                        <div>
+                          <p className="text-sm font-medium text-slate-700">Als regulären Arbeitstag zählen?</p>
+                          <p className="text-xs text-slate-400 mt-0.5">Dieser Tag hat kein Soll — mit Ja wird Soll = 8h gesetzt (z.B. Freitag als Tausch für einen anderen Tag)</p>
+                        </div>
+                        <button type="button" onClick={()=>setNewEntry(v=>({...v,countAsSollDay:!v.countAsSollDay}))}
+                          className={`ml-4 px-4 py-2 rounded-xl text-sm font-medium transition-colors shrink-0 ${newEntry.countAsSollDay?"bg-blue-600 text-white":"bg-slate-200 text-slate-500"}`}>
+                          {newEntry.countAsSollDay?"✓ Ja":"Nein"}
+                        </button>
+                      </div>
+                    </div>
                   )}
                   <div><label className="text-xs text-slate-500 mb-1 block">Notiz</label><input value={newEntry.note} onChange={e=>setNewEntry(v=>({...v,note:e.target.value}))} className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300"/></div>
                   <div className="flex gap-2 flex-wrap">
