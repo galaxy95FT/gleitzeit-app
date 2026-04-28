@@ -1,0 +1,17 @@
+{
+  "name": "stundePROwoche",
+  "short_name": "stundePRO",
+  "description": "Zeiterfassung & Gleitzeitverwaltung",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#2e1065",
+  "theme_color": "#6d28d9",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
