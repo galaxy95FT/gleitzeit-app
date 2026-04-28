@@ -184,7 +184,8 @@ function buildDaySummary(settings,entries) {
     const autoHol=isHoliday?{date,type:"holiday",actualHours:0,note:holidays.get(date)}:null;
     const entry=entryMap.get(date)??autoHol;
     // Feiertage: immer 0 Soll und 0 Ist — kein Einfluss auf Saldo
-    const scheduled=isHoliday?0:scheduledHours(date,settings);
+    const isComp=entry?.type==="comp";
+    const scheduled=(isHoliday||isComp)?0:scheduledHours(date,settings);
     const credited=isHoliday?0:(entry?creditedHours(entry,settings):0);
     return {date,entry,scheduled,credited,delta:credited-scheduled};
   });
@@ -542,6 +543,7 @@ function App({ user }) {
   const [pauseClock,setPauseClock] = useState(null);
   const [newEntry,setNewEntry]   = useState({date:TODAY,type:"work",start:"08:00",end:"12:00",start2:"12:30",end2:"16:00",note:""});
   const [activeTab,setActiveTab] = useState("dashboard");
+  const [dashView,setDashView] = useState("actual"); // actual | projected
   const [isEditing,setIsEditing] = useState(false);
   const [listFilter,setListFilter] = useState({work:true,sick:true,comp:false,vacation:false,holiday:false,free:false});
   const [listLimit,setListLimit] = useState(50);
@@ -602,7 +604,7 @@ function App({ user }) {
     const allDays=summary.filter(d=>parseIso(d.date).getMonth()+1===month);
     const scheduled=days.reduce((s,d)=>s+d.scheduled,0);
     const credited=days.reduce((s,d)=>s+d.credited,0);
-    const fullScheduled=allDays.reduce((s,d)=>s+d.scheduled,0);
+    const fullScheduled=allDays.filter(d=>d.scheduled>0&&(d.date<=TODAY||d.entry!=null)).reduce((s,d)=>s+d.scheduled,0);
     return {month,label:new Date(settings.year,i,1).toLocaleDateString("de-AT",{month:"long"}),
       scheduled,credited,delta:credited-scheduled,fullScheduled};
   }),[summary,settings.year]);
@@ -709,35 +711,65 @@ function App({ user }) {
             {/* ── DASHBOARD ─────────────────────────────────────────── */}
             {activeTab==="dashboard"&&(
               <>
-                {/* Year progress bar — Soll vs Ist */}
+                {/* Toggle */}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-slate-400 font-medium">Ansicht:</span>
+                  <div className="flex bg-slate-100 rounded-xl p-1 gap-1">
+                    <button onClick={()=>setDashView("actual")}
+                      className={`px-4 py-1.5 rounded-lg text-xs font-medium transition-colors ${dashView==="actual"?"bg-white text-slate-800 shadow-sm":"text-slate-500 hover:text-slate-700"}`}>
+                      Tatsächlich
+                    </button>
+                    <button onClick={()=>setDashView("projected")}
+                      className={`px-4 py-1.5 rounded-lg text-xs font-medium transition-colors ${dashView==="projected"?"bg-white text-slate-800 shadow-sm":"text-slate-500 hover:text-slate-700"}`}>
+                      Rechnerisch
+                    </button>
+                  </div>
+                  <span className="text-xs text-slate-400">
+                    {dashView==="actual"?"Nur geleistete Stunden bis heute":"Volles Jahres-Soll inkl. Zukunft"}
+                  </span>
+                </div>
+
+                {/* Year progress bar */}
                 <div className="grid gap-6 md:grid-cols-2">
-                  <YearProgress
-                    label="Jahresfortschritt"
-                    soll={stats.elapsedScheduled}
-                    ist={stats.elapsedCredited}
-                  />
+                  {dashView==="actual"?(
+                    <YearProgress label="Jahresfortschritt — tatsächlich" soll={stats.elapsedScheduled} ist={stats.elapsedCredited}/>
+                  ):(
+                    <YearProgress label="Jahresfortschritt — rechnerisch" soll={stats.allScheduled} ist={stats.elapsedCredited}/>
+                  )}
                   <div className="bg-white rounded-2xl p-7 shadow-sm border border-slate-100 space-y-4">
                     <span className="text-xs text-slate-400 uppercase tracking-wide">Gleitzeitsaldo heute</span>
                     <p className={`text-4xl font-black ${stats.flexNow>=0?"text-emerald-600":"text-rose-600"}`}>{fs(stats.flexNow)}</p>
+                    {dashView==="projected"&&(
+                      <p className="text-xs text-slate-400">Jahres-Soll gesamt: <strong className="text-slate-600">{fh(stats.allScheduled)}</strong></p>
+                    )}
                   </div>
                 </div>
 
                 {/* Monatliche Fortschrittsbalken */}
                 <div>
-                  <h3 className="text-sm font-semibold text-slate-600 mb-3">Monate 2026 — Soll vs. Ist</h3>
+                  <h3 className="text-sm font-semibold text-slate-600 mb-3">
+                    {dashView==="actual"?"Monate 2026 — tatsächlich (bis heute)":"Monate 2026 — rechnerisch (ganzes Jahr)"}
+                  </h3>
                   <div className="space-y-3">
-                    {[...monthlyOverview].filter(m=>m.scheduled>0).reverse().map(m=>{
-                      const pct = m.scheduled>0 ? Math.min(100,(m.credited/m.scheduled)*100) : 0;
-                      const over = m.credited > m.scheduled;
-                      const barColor = m.credited===0 ? "bg-slate-200" : over ? "bg-emerald-400" : "bg-blue-400";
+                    {[...monthlyOverview]
+                      .filter(m=>dashView==="actual"?m.scheduled>0:m.fullScheduled>0)
+                      .reverse()
+                      .map(m=>{
+                      const soll = dashView==="actual" ? m.scheduled : m.fullScheduled;
+                      const pct = soll>0 ? Math.min(100,(m.credited/soll)*100) : 0;
+                      const over = m.credited > soll;
+                      const future = dashView==="projected" && m.scheduled===0 && m.fullScheduled>0;
+                      const barColor = future ? "bg-slate-300" : m.credited===0 ? "bg-slate-200" : over ? "bg-emerald-400" : "bg-blue-400";
                       return (
-                        <div key={m.month} className="grid items-center gap-2" style={{gridTemplateColumns:"80px 1fr 90px"}}>
-                          <span className="text-xs text-slate-500 text-right pr-2">{m.label}</span>
+                        <div key={m.month} className="grid items-center gap-2" style={{gridTemplateColumns:"80px 1fr 110px"}}>
+                          <span className={`text-xs text-right pr-2 ${future?"text-slate-400":"text-slate-500"}`}>{m.label}</span>
                           <div className="h-7 bg-slate-100 rounded-full overflow-hidden relative">
                             <div className={`h-full rounded-full transition-all duration-500 ${barColor}`} style={{width:`${pct}%`}}/>
-                            {m.scheduled>0&&<span className="absolute inset-0 flex items-center justify-center text-xs font-medium text-slate-600 mix-blend-multiply">{fh(m.credited)}</span>}
+                            {soll>0&&<span className="absolute inset-0 flex items-center justify-center text-xs font-medium text-slate-600 mix-blend-multiply">{m.credited>0?fh(m.credited):future?"ausstehend":""}</span>}
                           </div>
-                          <span className={`text-xs font-semibold text-right ${m.delta>=0?"text-emerald-700":"text-rose-700"}`}>{fs(m.delta)}</span>
+                          <span className={`text-xs font-semibold text-right ${future?"text-slate-400":m.delta>=0?"text-emerald-700":"text-rose-700"}`}>
+                            {future?fh(m.fullScheduled)+" Soll":fs(m.delta)}
+                          </span>
                         </div>
                       );
                     })}
