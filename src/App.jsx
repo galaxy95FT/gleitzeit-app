@@ -40,9 +40,24 @@ function totalWorkHours(e) {
   }
   return hoursFromRange(e.start, e.end) + hoursFromRange(e.start2, e.end2);
 }
-function fh(v) { return `${v.toFixed(2).replace(".",",")} h`; }
+function fh(v) {
+  const total = Math.round(Math.abs(v) * 60);
+  const h = Math.floor(total / 60);
+  const m = total % 60;
+  if(h===0) return `${m} min`;
+  if(m===0) return `${h} h`;
+  return `${h} h ${m} min`;
+}
 function fd(iso) { if(!iso) return ""; const [y,m,d]=iso.split("-"); return `${d}.${m}.${y}`; }
-function fs(v) { const r=Math.round(v*100)/100; return `${r>=0?"+":"-"}${Math.abs(r).toFixed(2).replace(".",",")} h`; }
+function fs(v) {
+  const sign = v >= 0 ? "+" : "-";
+  const total = Math.round(Math.abs(v) * 60);
+  const h = Math.floor(total / 60);
+  const m = total % 60;
+  if(h===0) return `${sign}${m} min`;
+  if(m===0) return `${sign}${h} h`;
+  return `${sign}${h} h ${m} min`;
+}
 
 function easterSunday(year) {
   const a=year%19,b=Math.floor(year/100),c=year%100,d=Math.floor(b/4),e=b%4,
