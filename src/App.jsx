@@ -229,6 +229,7 @@ function AuthPage({ onLogin }) {
   const [mode, setMode] = useState("login"); // login | register | forgot
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
@@ -286,10 +287,16 @@ function AuthPage({ onLogin }) {
           {mode !== "forgot" && (
             <div>
               <label className="text-xs text-slate-500 mb-1 block">Passwort</label>
-              <input type="password" value={password} onChange={e => setPassword(e.target.value)}
-                placeholder="••••••••"
-                onKeyDown={e => e.key === "Enter" && mode === "login" && handleLogin()}
-                className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300"/>
+              <div className="relative">
+                <input type={showPw?"text":"password"} value={password} onChange={e => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  onKeyDown={e => e.key === "Enter" && mode === "login" && handleLogin()}
+                  className="w-full border border-slate-200 rounded-xl px-4 py-3 pr-12 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300"/>
+                <button type="button" onClick={()=>setShowPw(v=>!v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 text-lg transition-colors">
+                  {showPw ? "🙈" : "👁"}
+                </button>
+              </div>
             </div>
           )}
         </div>
