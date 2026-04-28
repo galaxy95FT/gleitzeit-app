@@ -479,7 +479,7 @@ function MonthAccordion({ month, days, holidayLookup, settings, onEdit, isCurren
               </tr>
             </thead>
             <tbody>
-              {rows.map(({date,entry,scheduled,credited,delta,running})=>{
+              {rows.map(({date,entry,scheduled,credited,delta,running,isFutureEmpty})=>{
                 const isHol = holidayLookup.has(date);
                 const holName = holidayLookup.get(date);
                 const et = entry?.type;
@@ -497,7 +497,7 @@ function MonthAccordion({ month, days, holidayLookup, settings, onEdit, isCurren
                 }
 
                 return (
-                  <tr key={date} className={`border-t border-slate-50 transition-colors ${isWeekend?"bg-slate-50/50 text-slate-300":isHol?"bg-violet-50/50":"hover:bg-slate-50"}`}>
+                  <tr key={date} className={`border-t border-slate-50 transition-colors ${isFutureEmpty?"bg-rose-50/40":isWeekend?"bg-slate-50/50 text-slate-300":isHol?"bg-violet-50/50":"hover:bg-slate-50"}`}>
                     <td className="px-6 py-2.5 font-mono text-xs text-slate-500">{fd(date)}</td>
                     <td className="px-3 py-2.5 text-xs text-slate-400">{wd}</td>
                     <td className={`px-3 py-2.5 text-xs font-medium ${typeColors[isHol?"holiday":et]||"text-slate-400"}`}>{typeLabel}</td>
