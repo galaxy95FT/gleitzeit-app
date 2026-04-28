@@ -432,8 +432,9 @@ function MonthAccordion({ month, days, holidayLookup, settings, onEdit }) {
                 const holName = holidayLookup.get(date);
                 const et = entry?.type;
                 const wd = ["So","Mo","Di","Mi","Do","Fr","Sa"][parseIso(date).getDay()];
+                const isWeekend = [0,6].includes(parseIso(date).getDay());
                 const typeColors = {work:"text-slate-600",vacation:"text-emerald-600",sick:"text-rose-600",comp:"text-amber-600",holiday:"text-violet-600"};
-                const typeLabel = isHol ? holName : (et ? ENTRY_TYPES[et]?.label : "—");
+                const typeLabel = isHol ? holName : (isWeekend ? "Wochenende" : (et ? ENTRY_TYPES[et]?.label : "—"));
 
                 // Format time display
                 let zeitVm = "—", pause = "—", zeitNm = "";
@@ -444,17 +445,17 @@ function MonthAccordion({ month, days, holidayLookup, settings, onEdit }) {
                 }
 
                 return (
-                  <tr key={date} className="border-t border-slate-50 hover:bg-slate-50 transition-colors">
+                  <tr key={date} className={`border-t border-slate-50 transition-colors ${isWeekend?"bg-slate-50/50 text-slate-300":isHol?"bg-violet-50/50":"hover:bg-slate-50"}`}>
                     <td className="px-6 py-2.5 font-mono text-xs text-slate-500">{fd(date)}</td>
                     <td className="px-3 py-2.5 text-xs text-slate-400">{wd}</td>
                     <td className={`px-3 py-2.5 text-xs font-medium ${typeColors[isHol?"holiday":et]||"text-slate-400"}`}>{typeLabel}</td>
                     <td className="px-3 py-2.5 text-xs text-slate-600 font-mono">{zeitVm}</td>
                     <td className="px-3 py-2.5 text-xs text-slate-400 font-mono">{pause}</td>
                     <td className="px-3 py-2.5 text-xs text-slate-600 font-mono">{zeitNm}</td>
-                    <td className="px-3 py-2.5 text-xs text-right font-medium text-slate-700">{credited>0?fh(credited):"—"}</td>
-                    <td className="px-3 py-2.5 text-xs text-right text-slate-400">{scheduled>0?fh(scheduled):"—"}</td>
-                    <td className={`px-3 py-2.5 text-xs text-right font-semibold ${delta>=0?"text-emerald-600":"text-rose-600"}`}>{scheduled>0||credited>0?fs(delta):"—"}</td>
-                    <td className={`px-6 py-2.5 text-xs text-right font-bold ${running>=0?"text-emerald-700":"text-rose-700"}`}>{fs(running)}</td>
+                    <td className="px-3 py-2.5 text-xs text-right font-medium text-slate-700">{(isWeekend||isHol)?"—":credited>0?fh(credited):"—"}</td>
+                    <td className="px-3 py-2.5 text-xs text-right text-slate-400">{(isWeekend||isHol)?"—":scheduled>0?fh(scheduled):"—"}</td>
+                    <td className={`px-3 py-2.5 text-xs text-right font-semibold ${delta>=0?"text-emerald-600":"text-rose-600"}`}>{(isWeekend||isHol)?"—":scheduled>0||credited>0?fs(delta):"—"}</td>
+                    <td className={`px-6 py-2.5 text-xs text-right font-bold ${running>=0?"text-emerald-700":"text-rose-700"}`}>{(isWeekend||isHol)?"":fs(running)}</td>
                     <td className="px-3 py-2.5">
                       {entry&&entry.type!=="holiday"&&<button onClick={()=>onEdit(entry)} className="text-slate-300 hover:text-slate-600 text-xs px-2 py-1 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">✏️</button>}
                     </td>
@@ -804,7 +805,7 @@ function App({ user }) {
                 <div className="space-y-3">
                   {monthlyOverview.map(m=>{
                     const monthDays = summary.filter(d=>parseIso(d.date).getMonth()+1===m.month);
-                    const workDays = monthDays.filter(d=>d.scheduled>0||d.credited>0||d.entry?.type==="holiday");
+                    const workDays = monthDays; // alle Tage anzeigen
                     return (
                       <MonthAccordion key={m.month} month={m} days={workDays}
                         holidayLookup={holidayLookup} settings={settings}
