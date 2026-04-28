@@ -756,7 +756,26 @@ function App({ user }) {
                     <span className="text-xs text-slate-400 uppercase tracking-wide">Gleitzeitsaldo heute</span>
                     <p className={`text-4xl font-black ${stats.flexNow>=0?"text-emerald-600":"text-rose-600"}`}>{fs(stats.flexNow)}</p>
                     {dashView==="projected"&&(
-                      <p className="text-xs text-slate-400">Jahres-Soll gesamt: <strong className="text-slate-600">{fh(stats.allScheduled)}</strong></p>
+                      <div className="space-y-2 pt-1 border-t border-slate-100">
+                        <div className="flex justify-between text-xs">
+                          <span className="text-slate-400">Jahres-Soll gesamt</span>
+                          <strong className="text-slate-600">{fh(stats.allScheduled)}</strong>
+                        </div>
+                        <div className="flex justify-between text-xs">
+                          <span className="text-slate-400">Monatssoll {monthlyOverview[currentMonth-1]?.label}</span>
+                          <strong className="text-violet-600">{fh(monthlyOverview[currentMonth-1]?.fullScheduled||0)}</strong>
+                        </div>
+                        <div className="flex justify-between text-xs">
+                          <span className="text-slate-400">Davon bereits geleistet</span>
+                          <strong className="text-slate-600">{fh(monthlyOverview[currentMonth-1]?.credited||0)}</strong>
+                        </div>
+                        <div className="flex justify-between text-xs border-t border-slate-100 pt-1">
+                          <span className="text-slate-400">Noch zu leisten im Monat</span>
+                          <strong className={`${((monthlyOverview[currentMonth-1]?.fullScheduled||0)-(monthlyOverview[currentMonth-1]?.credited||0))>0?"text-rose-500":"text-emerald-500"}`}>
+                            {fh(Math.max(0,(monthlyOverview[currentMonth-1]?.fullScheduled||0)-(monthlyOverview[currentMonth-1]?.credited||0)))}
+                          </strong>
+                        </div>
+                      </div>
                     )}
                   </div>
                 </div>
