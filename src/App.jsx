@@ -166,7 +166,8 @@ function buildDaySummary(settings,entries) {
   return eachDate(`${settings.year}-01-01`,`${settings.year}-12-31`).map(date=>{
     const autoHol=holidays.has(date)?{date,type:"holiday",actualHours:0,note:holidays.get(date)}:null;
     const entry=entryMap.get(date)??autoHol;
-    const scheduled=scheduledHours(date,settings);
+    const isHoliday=holidays.has(date);
+    const scheduled=isHoliday?0:scheduledHours(date,settings);
     const credited=entry?creditedHours(entry,settings):0;
     return {date,entry,scheduled,credited,delta:credited-scheduled};
   });
