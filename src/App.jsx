@@ -173,7 +173,8 @@ function creditedHours(entry,settings) {
   const sched=scheduledHours(entry.date,settings);
   if(entry.type==="work") return (entry.start&&entry.end)?totalWorkHours(entry):(entry.actualHours??0);
   if(entry.type==="holiday") return 0;
-  if(["vacation","sick","comp"].includes(entry.type)) return sched;
+  if(entry.type==="comp") return 0;
+  if(["vacation","sick"].includes(entry.type)) return sched;
   return 0;
 }
 function buildDaySummary(settings,entries) {
@@ -751,24 +752,24 @@ function App({ user }) {
                     {dashView==="actual"?"Monate 2026 — tatsächlich (bis heute)":"Monate 2026 — rechnerisch (ganzes Jahr)"}
                   </h3>
                   <div className="space-y-3">
-                    {[...monthlyOverview]
-                      .filter(m=>dashView==="actual"?m.scheduled>0:m.fullScheduled>0)
-                      .reverse()
-                      .map(m=>{
+                    {(dashView==="actual"
+                      ? [...monthlyOverview].filter(m=>m.scheduled>0).reverse()
+                      : [...monthlyOverview].filter(m=>m.fullScheduled>0)
+                    ).map(m=>{
                       const soll = dashView==="actual" ? m.scheduled : m.fullScheduled;
                       const pct = soll>0 ? Math.min(100,(m.credited/soll)*100) : 0;
                       const over = m.credited > soll;
-                      const future = dashView==="projected" && m.scheduled===0 && m.fullScheduled>0;
-                      const barColor = future ? "bg-slate-300" : m.credited===0 ? "bg-slate-200" : over ? "bg-emerald-400" : "bg-blue-400";
+                      const future = dashView==="projected" && m.credited===0 && m.fullScheduled>0;
+                      const barColor = future ? "bg-slate-100" : m.credited===0 ? "bg-slate-200" : over ? "bg-emerald-400" : "bg-blue-400";
                       return (
                         <div key={m.month} className="grid items-center gap-2" style={{gridTemplateColumns:"80px 1fr 110px"}}>
-                          <span className={`text-xs text-right pr-2 ${future?"text-slate-400":"text-slate-500"}`}>{m.label}</span>
+                          <span className={`text-xs text-right pr-2 ${future?"text-slate-300":"text-slate-500"}`}>{m.label}</span>
                           <div className="h-7 bg-slate-100 rounded-full overflow-hidden relative">
                             <div className={`h-full rounded-full transition-all duration-500 ${barColor}`} style={{width:`${pct}%`}}/>
-                            {soll>0&&<span className="absolute inset-0 flex items-center justify-center text-xs font-medium text-slate-600 mix-blend-multiply">{m.credited>0?fh(m.credited):future?"ausstehend":""}</span>}
+                            {!future&&soll>0&&<span className="absolute inset-0 flex items-center justify-center text-xs font-medium text-slate-600 mix-blend-multiply">{m.credited>0?fh(m.credited):""}</span>}
                           </div>
-                          <span className={`text-xs font-semibold text-right ${future?"text-slate-400":m.delta>=0?"text-emerald-700":"text-rose-700"}`}>
-                            {future?fh(m.fullScheduled)+" Soll":fs(m.delta)}
+                          <span className={`text-xs font-semibold text-right ${future?"text-slate-300":m.delta>=0?"text-emerald-700":"text-rose-700"}`}>
+                            {future?fh(m.fullScheduled):fs(m.delta)}
                           </span>
                         </div>
                       );
