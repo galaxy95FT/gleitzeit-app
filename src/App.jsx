@@ -5,7 +5,7 @@ const SUPABASE_URL = "https://kcxclqpkymuxtcvyvcxg.supabase.co";
 const SUPABASE_KEY = "sb_publishable_xP5oyCE4LCkVzxw1lSJc7w_7co-cKWu";
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-const TODAY = "2026-04-22";
+const TODAY = new Date().toISOString().slice(0,10);
 
 
 const WEEKDAYS = ["So","Mo","Di","Mi","Do","Fr","Sa"];
@@ -543,7 +543,7 @@ function App({ user }) {
   const [saving,setSaving]       = useState(false);
   const [liveClock,setLiveClock] = useState(null);
   const [pauseClock,setPauseClock] = useState(null);
-  const [newEntry,setNewEntry]   = useState({date:TODAY,type:"work",start:"08:00",end:"12:00",start2:"12:30",end2:"16:00",note:"",countAsSollDay:false});
+  const [newEntry,setNewEntry]   = useState({date:TODAY,type:"work",start:"08:00",end:"14:00",start2:"14:30",end2:"16:30",note:"",countAsSollDay:false});
   const [vacationEnd,setVacationEnd] = useState(TODAY);
   const [activeTab,setActiveTab] = useState("dashboard");
   const [dashView,setDashView] = useState("actual"); // actual | projected
@@ -910,7 +910,7 @@ function App({ user }) {
                   <div><label className="text-xs text-slate-500 mb-1 block">Notiz</label><input value={newEntry.note} onChange={e=>setNewEntry(v=>({...v,note:e.target.value}))} className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300"/></div>
                   <div className="flex gap-2 flex-wrap">
                     <button onClick={()=>{addOrUpdateEntry();setIsEditing(false);}} className="px-4 py-2 bg-slate-800 text-white rounded-xl text-sm font-medium hover:bg-slate-700">{isEditing?"Änderung speichern":"Eintrag speichern"}</button>
-                    {isEditing&&<button onClick={()=>{setNewEntry({date:TODAY,type:"work",start:"08:00",end:"12:00",start2:"12:30",end2:"16:00",note:""});setIsEditing(false);}} className="px-4 py-2 border border-slate-200 rounded-xl text-sm">Abbrechen</button>}
+                    {isEditing&&<button onClick={()=>{setNewEntry({date:TODAY,type:"work",start:"08:00",end:"14:00",start2:"14:30",end2:"16:30",note:"",countAsSollDay:false});setIsEditing(false);}} className="px-4 py-2 border border-slate-200 rounded-xl text-sm">Abbrechen</button>}
                     {byDate.has(newEntry.date)&&<button onClick={()=>deleteEntry(newEntry.date)} className="px-4 py-2 border border-rose-200 text-rose-600 rounded-xl text-sm hover:bg-rose-50">Löschen</button>}
                   </div>
                 </div>
