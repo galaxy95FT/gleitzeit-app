@@ -544,6 +544,7 @@ function App({ user }) {
   const [liveClock,setLiveClock] = useState(null);
   const [pauseClock,setPauseClock] = useState(null);
   const [newEntry,setNewEntry]   = useState({date:TODAY,type:"work",start:"08:00",end:"14:00",start2:"14:30",end2:"16:30",note:"",countAsSollDay:false});
+  const [useTwoBlocks,setUseTwoBlocks] = useState(true);
   const [vacationEnd,setVacationEnd] = useState(TODAY);
   const [activeTab,setActiveTab] = useState("dashboard");
   const [dashView,setDashView] = useState("actual"); // actual | projected
@@ -630,7 +631,7 @@ function App({ user }) {
       setEntries(cur=>[...cur.filter(e=>!newEntries.find(n=>n.date===e.date)),...newEntries].sort((a,b)=>a.date.localeCompare(b.date)));
       await supabase.from("entries").upsert(newEntries.map(e=>({ date:e.date, type:"vacation", start:null, end:null, start2:null, end2:null, actual_hours:0, manual_break_min:null, note:e.note, user_id:user.id })));
     } else {
-      const actualHours=newEntry.type==="work"?totalWorkHours(newEntry):0;
+      const actualHours=newEntry.type==="work"?(useTwoBlocks&&newEntry.start2&&newEntry.end2?hoursFromRange(newEntry.start,newEntry.end)+hoursFromRange(newEntry.start2,newEntry.end2):(()=>{const h=hoursFromRange(newEntry.start,newEntry.end);return h>6?h-0.5:h;})() ):0;
       const entry={...newEntry,actualHours};
       setEntries(cur=>[...cur.filter(e=>e.date!==entry.date),entry].sort((a,b)=>a.date.localeCompare(b.date)));
       await supabase.from("entries").upsert({
@@ -860,40 +861,47 @@ function App({ user }) {
                   </div>
                   {newEntry.type==="work"&&(
                     <>
-                      {newEntry.date < TWO_BLOCK_START ? (
-                        <div className="bg-slate-50 rounded-xl p-3 space-y-3">
-                          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">1 Block + 30 min Pause (altes System)</p>
+                      <div className="bg-slate-50 rounded-xl p-3 space-y-3">
+                          {/* Toggle 1 Block / 2 Blöcke */}
+                          <div className="flex items-center justify-between">
+                            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">{useTwoBlocks?"2 Blöcke (mit Pause)":"1 Block (Pause automatisch)"}</p>
+                            <button type="button" onClick={()=>setUseTwoBlocks(v=>!v)}
+                              className="text-xs px-3 py-1 border border-slate-300 rounded-lg text-slate-500 hover:bg-slate-100 transition-colors">
+                              {useTwoBlocks?"→ 1 Block":"→ 2 Blöcke"}
+                            </button>
+                          </div>
+                          {/* Block 1 */}
                           <div className="grid gap-3 grid-cols-2">
                             <div><label className="text-xs text-slate-500 mb-1 block">Kommt</label><input type="time" value={newEntry.start||""} onChange={e=>setNewEntry(v=>({...v,start:e.target.value}))} className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 bg-white"/></div>
-                            <div><label className="text-xs text-slate-500 mb-1 block">Geht</label><input type="time" value={newEntry.end||""} onChange={e=>setNewEntry(v=>({...v,end:e.target.value}))} className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 bg-white"/></div>
+                            <div><label className="text-xs text-slate-500 mb-1 block">{useTwoBlocks?"Geht (Pause Start)":"Geht"}</label><input type="time" value={newEntry.end||""} onChange={e=>setNewEntry(v=>({...v,end:e.target.value}))} className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 bg-white"/></div>
                           </div>
+                          {/* Block 2 — nur wenn 2 Blöcke */}
+                          {useTwoBlocks&&(
+                            <>
+                              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide pt-1">Block 2</p>
+                              <div className="grid gap-3 grid-cols-2">
+                                <div><label className="text-xs text-slate-500 mb-1 block">Kommt (Pause Ende)</label><input type="time" value={newEntry.start2||""} onChange={e=>setNewEntry(v=>({...v,start2:e.target.value}))} className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 bg-white"/></div>
+                                <div><label className="text-xs text-slate-500 mb-1 block">Geht</label><input type="time" value={newEntry.end2||""} onChange={e=>setNewEntry(v=>({...v,end2:e.target.value}))} className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 bg-white"/></div>
+                              </div>
+                            </>
+                          )}
+                          {/* Zusammenfassung */}
                           {newEntry.start&&newEntry.end&&(
                             <div className="text-xs bg-white rounded-lg px-3 py-2 flex justify-between border border-slate-200">
-                              <span className="text-slate-500">Brutto: {fh(hoursFromRange(newEntry.start,newEntry.end))} &nbsp;·&nbsp; Pause: 30 min</span>
-                              <span className="font-bold text-slate-800">= {fh(hoursFromRange(newEntry.start,newEntry.end)>6?hoursFromRange(newEntry.start,newEntry.end)-0.5:hoursFromRange(newEntry.start,newEntry.end))}</span>
+                              {useTwoBlocks&&newEntry.start2&&newEntry.end2?(
+                                <>
+                                  <span className="text-slate-500">Block 1: <strong className="text-slate-700">{fh(hoursFromRange(newEntry.start,newEntry.end))}</strong> · Block 2: <strong className="text-slate-700">{fh(hoursFromRange(newEntry.start2,newEntry.end2))}</strong></span>
+                                  <span className="font-bold text-slate-800">= {fh(hoursFromRange(newEntry.start,newEntry.end)+hoursFromRange(newEntry.start2,newEntry.end2))}</span>
+                                </>
+                              ):(
+                                <>
+                                  <span className="text-slate-500">Brutto: <strong className="text-slate-700">{fh(hoursFromRange(newEntry.start,newEntry.end))}</strong> · Pause: <strong className="text-slate-700">30 min</strong></span>
+                                  <span className="font-bold text-slate-800">= {fh(hoursFromRange(newEntry.start,newEntry.end)>6?hoursFromRange(newEntry.start,newEntry.end)-0.5:hoursFromRange(newEntry.start,newEntry.end))}</span>
+                                </>
+                              )}
                             </div>
                           )}
                         </div>
-                      ) : (
-                        <div className="bg-slate-50 rounded-xl p-3 space-y-3">
-                          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Block 1 — Vormittag</p>
-                          <div className="grid gap-3 grid-cols-2">
-                            <div><label className="text-xs text-slate-500 mb-1 block">Kommt</label><input type="time" value={newEntry.start||""} onChange={e=>setNewEntry(v=>({...v,start:e.target.value}))} className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 bg-white"/></div>
-                            <div><label className="text-xs text-slate-500 mb-1 block">Geht (Pause Start)</label><input type="time" value={newEntry.end||""} onChange={e=>setNewEntry(v=>({...v,end:e.target.value}))} className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 bg-white"/></div>
-                          </div>
-                          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide pt-1">Block 2 — Nachmittag</p>
-                          <div className="grid gap-3 grid-cols-2">
-                            <div><label className="text-xs text-slate-500 mb-1 block">Kommt (Pause Ende)</label><input type="time" value={newEntry.start2||""} onChange={e=>setNewEntry(v=>({...v,start2:e.target.value}))} className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 bg-white"/></div>
-                            <div><label className="text-xs text-slate-500 mb-1 block">Geht</label><input type="time" value={newEntry.end2||""} onChange={e=>setNewEntry(v=>({...v,end2:e.target.value}))} className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 bg-white"/></div>
-                          </div>
-                          {newEntry.start&&newEntry.end&&newEntry.start2&&newEntry.end2&&(
-                            <div className="text-xs bg-white rounded-lg px-3 py-2 flex justify-between border border-slate-200">
-                              <span className="text-slate-500">Block 1: <strong className="text-slate-700">{fh(hoursFromRange(newEntry.start,newEntry.end))}</strong> &nbsp;·&nbsp; Block 2: <strong className="text-slate-700">{fh(hoursFromRange(newEntry.start2,newEntry.end2))}</strong></span>
-                              <span className="font-bold text-slate-800">= {fh(hoursFromRange(newEntry.start,newEntry.end)+hoursFromRange(newEntry.start2,newEntry.end2))}</span>
-                            </div>
-                          )}
-                        </div>
-                      )}
                     </>
                   )}
                   {newEntry.type==="work"&&scheduledHours(newEntry.date,settings)===0&&(
@@ -947,7 +955,7 @@ function App({ user }) {
                       <MonthAccordion key={m.month} month={m} days={workDays}
                         isCurrentMonth={m.month===currentMonth}
                         holidayLookup={holidayLookup} settings={settings}
-                        onEdit={(entry)=>{ const isOld=entry.date<TWO_BLOCK_START; setNewEntry({date:entry.date,type:entry.type,start:entry.start||"08:00",end:entry.end||"16:00",start2:isOld?"":entry.start2||"12:30",end2:isOld?"":entry.end2||"16:00",note:entry.note||"",manualBreakMin:entry.manualBreakMin??null,countAsSollDay:entry.countAsSollDay||false}); setIsEditing(true); setActiveTab("erfassung"); }}
+                        onEdit={(entry)=>{ const has2=!!(entry.start2&&entry.end2); setUseTwoBlocks(has2); setNewEntry({date:entry.date,type:entry.type,start:entry.start||"08:00",end:entry.end||"14:00",start2:entry.start2||"14:30",end2:entry.end2||"16:30",note:entry.note||"",manualBreakMin:entry.manualBreakMin??null,countAsSollDay:entry.countAsSollDay||false}); setIsEditing(true); setActiveTab("erfassung"); }}
                       />
                     );
                   })}
@@ -1013,7 +1021,7 @@ function App({ user }) {
                             <td className="py-2 pr-3 text-slate-500">{fh(sched)}</td>
                             <td className={`py-2 pr-3 font-semibold ${delta>=0?"text-emerald-700":"text-rose-700"}`}>{fs(delta)}</td>
                             <td className="py-2">
-                              <button onClick={()=>{const isOld=entry.date<TWO_BLOCK_START; setNewEntry({date:entry.date,type:entry.type,start:entry.start||"08:00",end:entry.end||"16:00",start2:isOld?"":entry.start2||"12:30",end2:isOld?"":entry.end2||"16:00",note:entry.note||"",countAsSollDay:entry.countAsSollDay||false});setIsEditing(true);setActiveTab("erfassung");}}
+                              <button onClick={()=>{const has2=!!(entry.start2&&entry.end2); setUseTwoBlocks(has2); setNewEntry({date:entry.date,type:entry.type,start:entry.start||"08:00",end:entry.end||"14:00",start2:entry.start2||"14:30",end2:entry.end2||"16:30",note:entry.note||"",countAsSollDay:entry.countAsSollDay||false});setIsEditing(true);setActiveTab("erfassung");}}
                                 className="text-slate-400 hover:text-slate-700 px-2 py-1 border border-slate-200 rounded-lg text-xs hover:bg-slate-50 transition-colors">✏️</button>
                             </td>
                           </tr>
