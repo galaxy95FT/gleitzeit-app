@@ -187,7 +187,7 @@ function YearProgress({ soll, ist, label }) {
   const over = ist > soll;
   const color = over ? "bg-emerald-500" : pct > 80 ? "bg-blue-500" : "bg-blue-400";
   return (
-    <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 space-y-3">
+    <div className="bg-white rounded-2xl p-7 shadow-sm border border-slate-100 space-y-4">
       <div className="flex justify-between items-baseline">
         <span className="text-xs text-slate-400 uppercase tracking-wide">{label}</span>
         <span className="text-sm">
@@ -513,11 +513,11 @@ function App({ user }) {
 
   if(loading) return (<div className="min-h-screen bg-slate-50 flex items-center justify-center"><div className="text-center space-y-3"><div className="text-4xl">⏱</div><p className="text-slate-600 font-medium">Daten werden geladen...</p></div></div>);
   return (
-    <div className="min-h-screen bg-slate-50 p-4">
-      <div className="mx-auto max-w-5xl space-y-4">
+    <div className="min-h-screen bg-slate-50 p-6 md:p-10">
+      <div className="mx-auto max-w-7xl space-y-6">
 
         {/* Header */}
-        <div className="bg-white rounded-3xl p-5 shadow-sm flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div className="bg-white rounded-3xl p-7 shadow-sm flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
             <p className="text-xs uppercase tracking-widest text-slate-400">Gleitzeit 2026</p>
             <h1 className="mt-0.5 text-2xl font-bold text-slate-800">Zeiterfassung</h1>
@@ -542,28 +542,28 @@ function App({ user }) {
             ))}
           </div>
 
-          <div className="p-5 space-y-5">
+          <div className="p-8 space-y-8">
 
             {/* ── DASHBOARD ─────────────────────────────────────────── */}
             {activeTab==="dashboard"&&(
               <>
                 {/* Year progress bar — Soll vs Ist */}
-                <div className="grid gap-4 md:grid-cols-2">
+                <div className="grid gap-6 md:grid-cols-2">
                   <YearProgress
                     label="Jahresfortschritt"
                     soll={stats.elapsedScheduled}
                     ist={stats.elapsedCredited}
                   />
-                  <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 space-y-3">
+                  <div className="bg-white rounded-2xl p-7 shadow-sm border border-slate-100 space-y-4">
                     <span className="text-xs text-slate-400 uppercase tracking-wide">Gleitzeitsaldo heute</span>
-                    <p className={`text-3xl font-black ${stats.flexNow>=0?"text-emerald-600":"text-rose-600"}`}>{fs(stats.flexNow)}</p>
+                    <p className={`text-4xl font-black ${stats.flexNow>=0?"text-emerald-600":"text-rose-600"}`}>{fs(stats.flexNow)}</p>
                   </div>
                 </div>
 
                 {/* Monatliche Fortschrittsbalken */}
                 <div>
                   <h3 className="text-sm font-semibold text-slate-600 mb-3">Monate 2026 — Soll vs. Ist</h3>
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     {[...monthlyOverview].filter(m=>m.scheduled>0).reverse().map(m=>{
                       const pct = m.scheduled>0 ? Math.min(100,(m.credited/m.scheduled)*100) : 0;
                       const over = m.credited > m.scheduled;
@@ -571,7 +571,7 @@ function App({ user }) {
                       return (
                         <div key={m.month} className="grid items-center gap-2" style={{gridTemplateColumns:"80px 1fr 90px"}}>
                           <span className="text-xs text-slate-500 text-right pr-2">{m.label}</span>
-                          <div className="h-5 bg-slate-100 rounded-full overflow-hidden relative">
+                          <div className="h-7 bg-slate-100 rounded-full overflow-hidden relative">
                             <div className={`h-full rounded-full transition-all duration-500 ${barColor}`} style={{width:`${pct}%`}}/>
                             {m.scheduled>0&&<span className="absolute inset-0 flex items-center justify-center text-xs font-medium text-slate-600 mix-blend-multiply">{fh(m.credited)}</span>}
                           </div>
@@ -583,7 +583,7 @@ function App({ user }) {
                 </div>
 
                 {/* Quick stats */}
-                <div className="grid gap-3 grid-cols-2 md:grid-cols-4">
+                <div className="grid gap-5 grid-cols-2 md:grid-cols-4">
                   <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-4">
                     <p className="text-xs text-emerald-600 font-medium">Urlaub offen</p>
                     <p className="text-2xl font-black text-emerald-800 mt-1">{stats.vacationRemaining}</p>
