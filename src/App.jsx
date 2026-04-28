@@ -634,8 +634,8 @@ function App({ user }) {
         date:entry.date, type:entry.type, start:entry.start||null, end:entry.end||null,
         start2:entry.start2||null, end2:entry.end2||null, actual_hours:entry.actualHours||0,
         manual_break_min:entry.manualBreakMin||null, note:entry.note||null, user_id:user.id,
-        count_as_soll_day:entry.countAsSollDay||false,
-      });
+        count_as_soll_day:entry.countAsSollDay===true,
+      }, {onConflict: "date"});
     }
     setSaving(false);
   };
