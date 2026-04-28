@@ -81,7 +81,7 @@ function holidayMap(year) {
   ]);
 }
 function defaultSettings() {
-  return { year:2026, annualVacationDays:20, vacationHoursPerDay:8, vacationCarryover:4, scheduledWeekdays:{1:8,2:8,3:8,4:8,5:0}, autoBreakThresholdH:6, autoBreakMinutes:30 };
+  return { year:2026, annualVacationDays:20, vacationHoursPerDay:8, vacationCarryover:4, flexCarryoverH:0, flexCarryoverMin:0, flexCarryoverSign:"-", scheduledWeekdays:{1:8,2:8,3:8,4:8,5:0}, autoBreakThresholdH:6, autoBreakMinutes:30 };
 }
 function scheduledHours(date,settings) { return settings.scheduledWeekdays[weekdayOf(date)]??0; }
 
@@ -557,7 +557,7 @@ function App({ user }) {
     async function loadAll() {
       setLoading(true);
       const { data: sData } = await supabase.from("settings").select("*").eq("user_id",user.id).single();
-      if(sData) setSettings({ year:sData.year, annualVacationDays:sData.annual_vacation_days, vacationHoursPerDay:sData.vacation_hours_per_day, vacationCarryover:sData.vacation_carryover, autoBreakThresholdH:sData.auto_break_threshold_h, autoBreakMinutes:sData.auto_break_minutes, scheduledWeekdays:sData.scheduled_weekdays });
+      if(sData) setSettings({ year:sData.year, annualVacationDays:sData.annual_vacation_days, vacationHoursPerDay:sData.vacation_hours_per_day, vacationCarryover:sData.vacation_carryover, flexCarryoverH:sData.flex_carryover_h||0, flexCarryoverMin:sData.flex_carryover_min||0, flexCarryoverSign:sData.flex_carryover_sign||"-", autoBreakThresholdH:sData.auto_break_threshold_h, autoBreakMinutes:sData.auto_break_minutes, scheduledWeekdays:sData.scheduled_weekdays });
       const { data: eData } = await supabase.from("entries").select("*").eq("user_id",user.id).order("date");
       if(eData && eData.length > 0) {
         setEntries(eData.map(r=>({ date:r.date, type:r.type, start:r.start, end:r.end, start2:r.start2, end2:r.end2, actualHours:r.actual_hours, manualBreakMin:r.manual_break_min, note:r.note, countAsSollDay:r.count_as_soll_day||false })));
@@ -573,7 +573,7 @@ function App({ user }) {
   },[]);
 
   const saveSettings = useCallback(async (s) => {
-    await supabase.from("settings").upsert({ user_id:user.id, year:s.year, annual_vacation_days:s.annualVacationDays, vacation_hours_per_day:s.vacationHoursPerDay, vacation_carryover:s.vacationCarryover, auto_break_threshold_h:s.autoBreakThresholdH, auto_break_minutes:s.autoBreakMinutes, scheduled_weekdays:s.scheduledWeekdays });
+    await supabase.from("settings").upsert({ user_id:user.id, year:s.year, annual_vacation_days:s.annualVacationDays, vacation_hours_per_day:s.vacationHoursPerDay, vacation_carryover:s.vacationCarryover, flex_carryover_h:s.flexCarryoverH||0, flex_carryover_min:s.flexCarryoverMin||0, flex_carryover_sign:s.flexCarryoverSign||"-", auto_break_threshold_h:s.autoBreakThresholdH, auto_break_minutes:s.autoBreakMinutes, scheduled_weekdays:s.scheduledWeekdays });
   },[]);
 
   const handleSetSettings = useCallback((updater) => {
@@ -595,8 +595,11 @@ function App({ user }) {
     const sickTaken=entries.filter(e=>e.type==="sick"&&scheduledHours(e.date,settings)>0).length;
     const compTaken=entries.filter(e=>e.type==="comp"&&scheduledHours(e.date,settings)>0).length;
     const holidayTaken=summary.filter(d=>d.entry?.type==="holiday").length;
+    const flexCarryoverHours=(settings.flexCarryoverH||0)+(settings.flexCarryoverMin||0)/60;
+    const flexCarryoverTotal=(settings.flexCarryoverSign||"-")==="-"?-flexCarryoverHours:flexCarryoverHours;
     return {allScheduled,elapsedScheduled,elapsedCredited,
-      flexNow:elapsedCredited-elapsedScheduled,
+      flexCarryover:flexCarryoverTotal,
+      flexNow:elapsedCredited-elapsedScheduled+flexCarryoverTotal,
       vacationTaken,vacationPlanned,sickTaken,compTaken,holidayTaken,
       vacationRemaining:Math.max(0,(settings.annualVacationDays+(settings.vacationCarryover||0))-vacationTaken-vacationPlanned)};
   },[summary,entries,settings]);
@@ -1126,6 +1129,31 @@ function App({ user }) {
                   <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-3 text-xs text-emerald-700">
                     Gesamt {settings.year}: <strong>{settings.annualVacationDays+(settings.vacationCarryover||0)} Tage</strong> = <strong>{fh((settings.annualVacationDays+(settings.vacationCarryover||0))*(settings.vacationHoursPerDay||8))}</strong>
                   </div>
+                </div>
+                <div className="border-t border-slate-100 pt-5 space-y-4">
+                  <h2 className="font-semibold text-slate-700">Gleitzeitübertrag Vorjahr</h2>
+                  <p className="text-xs text-slate-400">Saldo vom Vorjahr der in dieses Jahr mitgenommen wird.</p>
+                  <div className="flex items-center gap-3">
+                    <select value={settings.flexCarryoverSign||"-"}
+                      onChange={e=>handleSetSettings(s=>({...s,flexCarryoverSign:e.target.value}))}
+                      className="border border-slate-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-slate-300 w-20">
+                      <option value="+">+ Plus</option>
+                      <option value="-">− Minus</option>
+                    </select>
+                    <input type="number" min="0" max="999" step="1" value={settings.flexCarryoverH||0}
+                      onChange={e=>handleSetSettings(s=>({...s,flexCarryoverH:Number(e.target.value)}))}
+                      className="w-20 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300"/>
+                    <span className="text-sm text-slate-400">h</span>
+                    <input type="number" min="0" max="59" step="1" value={settings.flexCarryoverMin||0}
+                      onChange={e=>handleSetSettings(s=>({...s,flexCarryoverMin:Number(e.target.value)}))}
+                      className="w-20 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300"/>
+                    <span className="text-sm text-slate-400">min</span>
+                  </div>
+                  {(settings.flexCarryoverH||settings.flexCarryoverMin)?(
+                    <div className="bg-slate-50 border border-slate-100 rounded-xl p-3 text-xs text-slate-600">
+                      Übertrag: <strong>{settings.flexCarryoverSign==="-"?"-":"+"}{settings.flexCarryoverH||0}h {settings.flexCarryoverMin||0}min</strong> wird zum Jahressaldo addiert
+                    </div>
+                  ):null}
                 </div>
                 <div className="border-t border-slate-100 pt-5 space-y-4">
                   <h2 className="font-semibold text-slate-700">Pausenregelung</h2>
