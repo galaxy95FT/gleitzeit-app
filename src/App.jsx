@@ -1179,21 +1179,25 @@ function App({ user }) {
                 <div className="border-t border-slate-100 pt-5 space-y-4">
                   <h2 className="font-semibold text-slate-700">Gleitzeitübertrag Vorjahr</h2>
                   <p className="text-xs text-slate-400">Saldo vom Vorjahr der in dieses Jahr mitgenommen wird.</p>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 flex-wrap">
                     <select value={settings.flexCarryoverSign||"-"}
-                      onChange={e=>handleSetSettings(s=>({...s,flexCarryoverSign:e.target.value}))}
-                      className="border border-slate-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-slate-300 w-20">
+                      onChange={e=>setSettings(s=>({...s,flexCarryoverSign:e.target.value}))}
+                      className="border border-slate-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-slate-300 w-24">
                       <option value="+">+ Plus</option>
                       <option value="-">− Minus</option>
                     </select>
                     <input type="number" min="0" max="999" step="1" value={settings.flexCarryoverH||0}
-                      onChange={e=>handleSetSettings(s=>({...s,flexCarryoverH:Number(e.target.value)}))}
+                      onChange={e=>setSettings(s=>({...s,flexCarryoverH:Number(e.target.value)}))}
                       className="w-20 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300"/>
                     <span className="text-sm text-slate-400">h</span>
                     <input type="number" min="0" max="59" step="1" value={settings.flexCarryoverMin||0}
-                      onChange={e=>handleSetSettings(s=>({...s,flexCarryoverMin:Number(e.target.value)}))}
+                      onChange={e=>setSettings(s=>({...s,flexCarryoverMin:Number(e.target.value)}))}
                       className="w-20 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300"/>
                     <span className="text-sm text-slate-400">min</span>
+                    <button onClick={()=>saveSettings(settings)}
+                      className="px-4 py-2 bg-slate-800 text-white rounded-xl text-sm font-medium hover:bg-slate-700 transition-colors">
+                      Speichern
+                    </button>
                   </div>
                   {(settings.flexCarryoverH||settings.flexCarryoverMin)?(
                     <div className="bg-slate-50 border border-slate-100 rounded-xl p-3 text-xs text-slate-600">
