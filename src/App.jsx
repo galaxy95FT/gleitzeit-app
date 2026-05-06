@@ -576,7 +576,13 @@ function App({ user }) {
   },[]);
 
   const saveSettings = useCallback(async (s) => {
-    await supabase.from("settings").upsert({ user_id:user.id, year:s.year, annual_vacation_days:s.annualVacationDays, vacation_hours_per_day:s.vacationHoursPerDay, vacation_carryover:s.vacationCarryover, flex_carryover_h:s.flexCarryoverH||0, flex_carryover_min:s.flexCarryoverMin||0, flex_carryover_sign:s.flexCarryoverSign||"-", auto_break_threshold_h:s.autoBreakThresholdH, auto_break_minutes:s.autoBreakMinutes, scheduled_weekdays:s.scheduledWeekdays });
+    // First try to update existing row
+    const { data: existing } = await supabase.from("settings").select("id2").eq("user_id", user.id).single();
+    if(existing) {
+      await supabase.from("settings").update({ year:s.year, annual_vacation_days:s.annualVacationDays, vacation_hours_per_day:s.vacationHoursPerDay, vacation_carryover:s.vacationCarryover, flex_carryover_h:s.flexCarryoverH||0, flex_carryover_min:s.flexCarryoverMin||0, flex_carryover_sign:s.flexCarryoverSign||"-", auto_break_threshold_h:s.autoBreakThresholdH, auto_break_minutes:s.autoBreakMinutes, scheduled_weekdays:s.scheduledWeekdays }).eq("user_id", user.id);
+    } else {
+      await supabase.from("settings").insert({ user_id:user.id, year:s.year, annual_vacation_days:s.annualVacationDays, vacation_hours_per_day:s.vacationHoursPerDay, vacation_carryover:s.vacationCarryover, flex_carryover_h:s.flexCarryoverH||0, flex_carryover_min:s.flexCarryoverMin||0, flex_carryover_sign:s.flexCarryoverSign||"-", auto_break_threshold_h:s.autoBreakThresholdH, auto_break_minutes:s.autoBreakMinutes, scheduled_weekdays:s.scheduledWeekdays });
+    }
   },[]);
 
   const handleSetSettings = useCallback((updater) => {
