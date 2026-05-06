@@ -711,7 +711,6 @@ function App({ user }) {
           <div className="flex flex-wrap gap-2">
             <button onClick={handleClockIn} className="px-4 py-2 bg-slate-800 text-white rounded-xl text-sm font-medium hover:bg-slate-700 transition-colors">⏱ Kommt</button>
             <button onClick={handleClockOut} className="px-4 py-2 bg-slate-200 text-slate-700 rounded-xl text-sm font-medium hover:bg-slate-300 transition-colors">🏁 Geht</button>
-            <button onClick={resetDemo} className="px-4 py-2 border border-slate-200 text-slate-500 rounded-xl text-sm hover:bg-slate-50 transition-colors">Reset</button>
             <button onClick={()=>supabase.auth.signOut()} className="px-4 py-2 border border-rose-200 text-rose-500 rounded-xl text-sm hover:bg-rose-50 transition-colors">Abmelden</button>
             {saving&&<span className="text-xs text-slate-400 animate-pulse">Speichert...</span>}
           </div>
@@ -770,6 +769,7 @@ function App({ user }) {
                   <div className="bg-white rounded-2xl p-7 shadow-sm border border-slate-100 space-y-4">
                     <span className="text-xs text-slate-400 uppercase tracking-wide">Gleitzeitsaldo heute</span>
                     <p className={`text-4xl font-black ${stats.flexNow>=0?"text-emerald-600":"text-rose-600"}`}>{fs(stats.flexNow)}</p>
+                    {(settings.flexCarryoverH||settings.flexCarryoverMin)?(<div className="flex justify-between text-xs pt-1 border-t border-slate-100"><span className="text-slate-400">davon Übertrag Vorjahr</span><span className={`font-medium ${stats.flexCarryover>=0?"text-emerald-600":"text-rose-600"}`}>{fs(stats.flexCarryover)}</span></div>):null}
 
                   </div>
                 </div>
