@@ -782,7 +782,7 @@ function App({ user }) {
                   <div className="space-y-2">
                     {(dashView==="actual"
                       ? [...monthlyOverview].filter(m=>m.scheduled>0).reverse()
-                      : [...monthlyOverview].filter(m=>m.fullScheduled>0)
+                      : [...monthlyOverview].filter(m=>m.fullScheduled>0).reverse()
                     ).map(m=>{
                       const soll = dashView==="actual" ? m.scheduled : m.fullScheduled;
                       const pct = soll>0 ? Math.min(100,(m.credited/soll)*100) : 0;
